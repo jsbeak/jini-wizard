@@ -1,0 +1,254 @@
+{
+  "menus": [
+    {
+      "id": "about",
+      "title": "About",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "welcome",
+          "title": "Welcome Message",
+          "status": "waiting",
+          "url": "/about/welcome"
+        },
+        {
+          "id": "company",
+          "title": "Company Overview",
+          "status": "waiting",
+          "url": "/about/company"
+        },
+        {
+          "id": "mission",
+          "title": "Mission & Vision",
+          "status": "waiting",
+          "url": "/about/mission"
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "title": "Research",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "areas",
+          "title": "Research Areas",
+          "status": "waiting",
+          "url": "/research/areas"
+        },
+        {
+          "id": "projects",
+          "title": "Current Projects",
+          "status": "waiting",
+          "url": "/research/projects"
+        },
+        {
+          "id": "publications",
+          "title": "Publications",
+          "status": "waiting",
+          "url": "/research/publications"
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "title": "Services",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "consulting",
+          "title": "Consulting",
+          "status": "waiting",
+          "url": "/services/consulting"
+        },
+        {
+          "id": "development",
+          "title": "Development",
+          "status": "waiting",
+          "url": "/services/development"
+        },
+        {
+          "id": "support",
+          "title": "Support",
+          "status": "waiting",
+          "url": "/services/support"
+        }
+      ]
+    },
+    {
+      "id": "team",
+      "title": "Team",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "leadership",
+          "title": "Leadership",
+          "status": "waiting",
+          "url": "/team/leadership"
+        },
+        {
+          "id": "researchers",
+          "title": "Researchers",
+          "status": "waiting",
+          "url": "/team/researchers"
+        },
+        {
+          "id": "careers",
+          "title": "Careers",
+          "status": "waiting",
+          "url": "/team/careers"
+        }
+      ]
+    },
+    {
+      "id": "portfolio",
+      "title": "Portfolio",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "case-studies",
+          "title": "Case Studies",
+          "status": "waiting",
+          "url": "/portfolio/case-studies"
+        },
+        {
+          "id": "clients",
+          "title": "Our Clients",
+          "status": "waiting",
+          "url": "/portfolio/clients"
+        },
+        {
+          "id": "testimonials",
+          "title": "Testimonials",
+          "status": "waiting",
+          "url": "/portfolio/testimonials"
+        }
+      ]
+    },
+    {
+      "id": "resources",
+      "title": "Resources",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "blog",
+          "title": "Blog",
+          "status": "waiting",
+          "url": "/resources/blog"
+        },
+        {
+          "id": "whitepapers",
+          "title": "Whitepapers",
+          "status": "waiting",
+          "url": "/resources/whitepapers"
+        },
+        {
+          "id": "tools",
+          "title": "Tools & Downloads",
+          "status": "waiting",
+          "url": "/resources/tools"
+        }
+      ]
+    },
+    {
+      "id": "news",
+      "title": "News & Events",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "latest-news",
+          "title": "Latest News",
+          "status": "waiting",
+          "url": "/news/latest"
+        },
+        {
+          "id": "events",
+          "title": "Upcoming Events",
+          "status": "waiting",
+          "url": "/news/events"
+        },
+        {
+          "id": "press",
+          "title": "Press Releases",
+          "status": "waiting",
+          "url": "/news/press"
+        }
+      ]
+    },
+    {
+      "id": "contact",
+      "title": "Contact",
+      "icon": "○",
+      "status": "waiting",
+      "submenus": [
+        {
+          "id": "contact-info",
+          "title": "Contact Information",
+          "status": "waiting",
+          "url": "/contact/info"
+        },
+        {
+          "id": "location",
+          "title": "Location & Directions",
+          "status": "waiting",
+          "url": "/contact/location"
+        },
+        {
+          "id": "support-form",
+          "title": "Support Request",
+          "status": "waiting",
+          "url": "/contact/support"
+        }
+      ]
+    }
+  ],
+  "statusMessages": {
+    "about": [
+      "회사 소개 문구를 작성하고 있습니다...",
+      "브랜드 스토리를 구성하고 있습니다...",
+      "핵심 가치를 정리하고 있습니다..."
+    ],
+    "research": [
+      "연구 분야를 분석하고 있습니다...",
+      "주요 프로젝트를 정리하고 있습니다...",
+      "연구 성과를 요약하고 있습니다..."
+    ],
+    "services": [
+      "서비스 카탈로그를 생성하고 있습니다...",
+      "핵심 역량을 정의하고 있습니다...",
+      "고객 혜택을 작성하고 있습니다..."
+    ],
+    "team": [
+      "팀 구성원 프로필을 생성하고 있습니다...",
+      "전문성을 강조하고 있습니다...",
+      "팀 문화를 소개하고 있습니다..."
+    ],
+    "portfolio": [
+      "성공 사례를 정리하고 있습니다...",
+      "프로젝트 성과를 분석하고 있습니다...",
+      "고객 후기를 수집하고 있습니다..."
+    ],
+    "resources": [
+      "유용한 자료를 구성하고 있습니다...",
+      "콘텐츠를 카테고리화하고 있습니다...",
+      "다운로드 자료를 준비하고 있습니다..."
+    ],
+    "news": [
+      "최신 뉴스를 생성하고 있습니다...",
+      "이벤트 정보를 구성하고 있습니다...",
+      "보도 자료를 작성하고 있습니다..."
+    ],
+    "contact": [
+      "연락처 정보를 구성하고 있습니다...",
+      "위치 정보를 생성하고 있습니다...",
+      "문의 양식을 준비하고 있습니다..."
+    ]
+  }
+}
