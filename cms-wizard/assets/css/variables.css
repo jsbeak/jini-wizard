@@ -6,18 +6,20 @@
     --primary-light: #818CF8;
     
     /* Status Colors */
-    --success-green: #10B981;
-    --success-light: #D1FAE5;
-    --progress-amber: #F59E0B;
-    --progress-light: #FEF3C7;
+    --success-blue: #3B82F6;
+    --success-light: #EFF6FF;
+    --progress-blue: #6366F1;
+    --progress-light: #F1F5F9;
     --neutral-gray: #6B7280;
     --error-red: #EF4444;
     
     /* Background Colors */
     --bg-primary: #FFFFFF;
-    --bg-secondary: #F9FAFB;
-    --bg-tertiary: #F3F4F6;
-    --bg-dark: #1F2937;
+    --bg-secondary: #F8FAFC;
+    --bg-tertiary: #F1F5F9;
+    --bg-quaternary: #E2E8F0;
+    --bg-sidebar: #FAFBFC;
+    --bg-dark: #1E293B;
     
     /* Text Colors */
     --text-primary: #1F2937;
@@ -26,9 +28,10 @@
     --text-white: #FFFFFF;
     
     /* Border Colors */
-    --border-light: #E5E7EB;
-    --border-medium: #D1D5DB;
-    --border-dark: #9CA3AF;
+    --border-light: #E2E8F0;
+    --border-medium: #CBD5E1;
+    --border-dark: #94A3B8;
+    --border-subtle: #F1F5F9;
     
     /* Typography */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -82,6 +85,6 @@
     
     /* Layout */
     --header-height: 64px;
-    --sidebar-width: 320px;
+    --sidebar-width: 280px;
     --footer-height: 56px;
 }

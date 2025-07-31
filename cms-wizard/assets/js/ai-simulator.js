@@ -372,30 +372,75 @@ class AISimulator {
             return;
         }
         
-        // Simulate generation delay
-        const delay = this.randomDelay();
-        await this.sleep(delay);
+        // Wait for iframe to be ready and get document
+        const iframeDoc = await this.waitForIframeReady();
+        if (!iframeDoc) {
+            console.error('Failed to access iframe document');
+            return;
+        }
         
-        // Get iframe document
+        console.log('🚀 Starting AI content generation for:', `${menu.id}/${submenu.id}`);
+        
+        // Show AI thinking process with detailed steps
+        await this.showAIProcess(iframeDoc);
+        
+        // Simulate initial AI processing delay
+        await this.sleep(800);
+        
+        // Update page title with realistic typing effect
+        await this.updateTitleWithTyping(iframeDoc, contentData.title);
+        
+        // Update subtitle with typing effect
+        await this.updateSubtitleWithTyping(iframeDoc, contentData.subtitle);
+        
+        // Update content paragraphs with typing effect
+        await this.updateContentWithTyping(iframeDoc, contentData.content);
+        
+        // Update feature cards with typing effect
+        await this.updateFeaturesWithTyping(iframeDoc, contentData.features);
+        
+        // Final completion message
+        this.showCompletionMessage();
+        
+        console.log('✅ AI content generation completed');
+    }
+    
+    // Wait for iframe to be ready and return document
+    async waitForIframeReady() {
         const iframe = document.getElementById('preview-iframe');
-        if (!iframe || !iframe.contentDocument) return;
+        if (!iframe) return null;
         
-        const iframeDoc = iframe.contentDocument;
+        // Wait for iframe to load
+        let attempts = 0;
+        while (attempts < 50) { // Max 5 seconds
+            try {
+                if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+                    return iframe.contentDocument;
+                }
+            } catch (e) {
+                // Access denied, keep trying
+            }
+            
+            await this.sleep(100);
+            attempts++;
+        }
         
-        // Update page title
-        await this.updateTitle(iframeDoc, contentData.title);
-        
-        // Update subtitle
-        await this.updateSubtitle(iframeDoc, contentData.subtitle);
-        
-        // Update content paragraphs
-        await this.updateContent(iframeDoc, contentData.content);
-        
-        // Update feature cards
-        await this.updateFeatures(iframeDoc, contentData.features);
-        
-        // Simulate image generation
-        await this.generateImages(iframeDoc);
+        return null;
+    }
+    
+    // Show final completion message
+    showCompletionMessage() {
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; color: #059669;">
+                    <span style="font-size: 14px;">🎉 페이지 생성 완료!</span>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    AI가 고품질 콘텐츠를 성공적으로 생성했습니다.
+                </div>
+            `;
+        }
     }
     
     async updateTitle(doc, title) {
@@ -438,10 +483,17 @@ class AISimulator {
             
             await this.sleep(200);
             
-            // Replace with new content
+            // Replace with new content and add stagger effect
             paragraph.innerHTML = contentArray[i];
             paragraph.style.opacity = '0';
-            await this.app.animator.fadeContent(paragraph, false);
+            paragraph.style.transform = 'translateY(20px)';
+            
+            // Stagger the appearance
+            setTimeout(() => {
+                paragraph.style.transition = 'all 0.5s ease';
+                paragraph.style.opacity = '1';
+                paragraph.style.transform = 'translateY(0)';
+            }, i * 150);
         }
     }
     
@@ -451,6 +503,10 @@ class AISimulator {
         for (let i = 0; i < Math.min(features.length, cards.length); i++) {
             const card = cards[i];
             const feature = features[i];
+            
+            // Add scale animation to cards
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
             
             // Update title
             const titleElement = card.querySelector('h3');
@@ -476,6 +532,13 @@ class AISimulator {
                 descElement.style.opacity = '0';
                 await this.app.animator.fadeContent(descElement, false);
             }
+            
+            // Animate card appearance with stagger
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'scale(1)';
+            }, i * 200);
         }
     }
     
@@ -483,30 +546,89 @@ class AISimulator {
         const imagePlaceholders = doc.querySelectorAll('.image-placeholder');
         
         for (const placeholder of imagePlaceholders) {
-            placeholder.style.filter = 'blur(10px)';
-            await this.sleep(1000);
+            // Start with loading state
+            placeholder.innerHTML = `
+                <div style="
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+                    color: #666;
+                    border-radius: 8px;
+                    font-size: 14px;
+                ">
+                    <div style="
+                        width: 24px;
+                        height: 24px;
+                        border: 3px solid #6366F1;
+                        border-top: 3px solid transparent;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        margin-bottom: 8px;
+                    "></div>
+                    AI 이미지 생성 중...
+                </div>
+            `;
             
-            // Simulate image generation
-            const imageTypes = ['chart', 'photo', 'diagram', 'illustration'];
-            const randomType = imageTypes[Math.floor(Math.random() * imageTypes.length)];
+            await this.sleep(2000);
+            
+            // Generate realistic content-aware images
+            const imageTypes = [
+                { type: 'chart', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: '📊' },
+                { type: 'photo', bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', icon: '📸' },
+                { type: 'diagram', bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', icon: '🔄' },
+                { type: 'illustration', bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', icon: '🎨' }
+            ];
+            const randomImage = imageTypes[Math.floor(Math.random() * imageTypes.length)];
             
             placeholder.innerHTML = `
                 <div style="
                     width: 100%;
                     height: 100%;
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: ${randomImage.bg};
                     color: white;
-                    font-size: 24px;
-                    font-weight: bold;
+                    font-weight: 600;
+                    border-radius: 8px;
+                    position: relative;
+                    overflow: hidden;
                 ">
-                    Generated ${randomType.toUpperCase()}
+                    <div style="font-size: 2em; margin-bottom: 8px;">${randomImage.icon}</div>
+                    <div style="font-size: 14px; text-align: center;">
+                        AI Generated<br/>${randomImage.type.charAt(0).toUpperCase() + randomImage.type.slice(1)}
+                    </div>
+                    <div style="
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        background: rgba(255,255,255,0.2);
+                        padding: 4px 8px;
+                        border-radius: 12px;
+                        font-size: 11px;
+                        backdrop-filter: blur(4px);
+                    ">
+                        NEW
+                    </div>
                 </div>
             `;
             
-            await this.app.animator.animateImageGeneration(placeholder);
+            // Add generation animation
+            placeholder.style.opacity = '0';
+            placeholder.style.transform = 'scale(0.9)';
+            placeholder.style.transition = 'all 0.5s ease';
+            
+            setTimeout(() => {
+                placeholder.style.opacity = '1';
+                placeholder.style.transform = 'scale(1)';
+            }, 100);
+            
+            await this.sleep(500);
         }
     }
     
@@ -516,5 +638,416 @@ class AISimulator {
     
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // Enhanced realistic typing effect with auto-scroll and progress sync
+    async typeText(element, text, speed = 30, showProgress = false) {
+        console.log(`⌨️ Starting typeText: "${text.substring(0, 50)}..." (${text.length} chars)`);
+        
+        if (!element) {
+            console.error('❌ typeText: element is null');
+            return;
+        }
+        
+        element.innerHTML = '';
+        
+        // Add enhanced cursor with animation
+        const cursor = document.createElement('span');
+        cursor.className = 'typing-cursor';
+        cursor.style.cssText = `
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background-color: #6366F1;
+            animation: blink 1s infinite;
+            margin-left: 2px;
+            position: relative;
+            top: 2px;
+        `;
+        element.appendChild(cursor);
+        
+        console.log('✅ Cursor added, starting character-by-character typing...');
+        
+        // Update status message during typing if enabled
+        const statusMessage = document.getElementById('status-message');
+        
+        for (let i = 0; i < text.length; i++) {
+            // Add character before cursor with realistic typing variation
+            const char = text[i];
+            const textNode = document.createTextNode(char);
+            element.insertBefore(textNode, cursor);
+            
+            // Variable typing speed based on character type
+            let charDelay = speed;
+            if (char === ' ') {
+                charDelay = speed * 0.5; // Faster for spaces
+            } else if (char === ',' || char === '.') {
+                charDelay = speed * 1.8; // Slower for punctuation
+            } else if (char === '\n') {
+                charDelay = speed * 2; // Pause for line breaks
+            }
+            
+            await this.sleep(charDelay + Math.random() * 15);
+            
+            // Enhanced auto-scroll with smooth animation
+            if (i % 10 === 0 || char === '\n') { // Scroll every 10 characters or on new lines
+                element.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
+            
+            // Update progress if enabled
+            if (showProgress && statusMessage && i % 20 === 0) {
+                const progress = Math.round((i / text.length) * 100);
+                const currentStatus = statusMessage.querySelector('span');
+                if (currentStatus && currentStatus.textContent.includes('%')) {
+                    currentStatus.innerHTML = currentStatus.innerHTML.replace(/\d+%/, `${progress}%`);
+                }
+            }
+            
+            // Add slight cursor movement for realism
+            if (i % 5 === 0) {
+                cursor.style.animation = 'none';
+                setTimeout(() => {
+                    cursor.style.animation = 'blink 1s infinite';
+                }, 50);
+            }
+        }
+        
+        // Final scroll to ensure visibility
+        element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+        });
+        
+        // Enhanced cursor removal with fade effect
+        cursor.style.transition = 'opacity 0.5s ease';
+        cursor.style.opacity = '0';
+        
+        setTimeout(() => {
+            if (cursor.parentNode) {
+                cursor.remove();
+            }
+        }, 800);
+    }
+    
+    // Enhanced content update with typing effect and progress sync
+    async updateContentWithTyping(doc, contentArray) {
+        const contentElement = doc.querySelector('#ai-content');
+        if (!contentElement) return;
+        
+        // Update status for content generation
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 14px;">📄 본문 내용 생성 중...</span>
+                    <div class="spinner" style="width: 12px; height: 12px; border-width: 1px;"></div>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    상세한 내용을 작성하고 있습니다.
+                </div>
+            `;
+        }
+        
+        // Clear existing content
+        contentElement.innerHTML = '';
+        await this.sleep(800);
+        
+        // Generate content paragraphs with typing
+        for (let i = 0; i < contentArray.length; i++) {
+            const paragraph = doc.createElement('p');
+            contentElement.appendChild(paragraph);
+            
+            // Add entrance animation
+            paragraph.style.opacity = '0';
+            paragraph.style.transform = 'translateY(10px)';
+            
+            setTimeout(() => {
+                paragraph.style.transition = 'all 0.3s ease';
+                paragraph.style.opacity = '1';
+                paragraph.style.transform = 'translateY(0)';
+            }, 100);
+            
+            await this.sleep(200);
+            await this.typeText(paragraph, contentArray[i], 25, i === 0); // Show progress for first paragraph
+            
+            // Brief pause between paragraphs
+            await this.sleep(600);
+        }
+    }
+    
+    // Enhanced title update with typing effect and progress sync
+    async updateTitleWithTyping(doc, title) {
+        console.log('📝 Starting title typing:', title);
+        const titleElement = doc.querySelector('#ai-title');
+        
+        if (!titleElement) {
+            console.error('❌ Title element #ai-title not found in iframe');
+            return;
+        }
+        
+        console.log('✅ Title element found, starting typing...');
+        
+        // Update status to show title generation
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 14px;">✍️ 제목 생성 중...</span>
+                    <div class="spinner" style="width: 12px; height: 12px; border-width: 1px;"></div>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    매력적인 제목을 작성하고 있습니다.
+                </div>
+            `;
+        }
+        
+        await this.typeText(titleElement, title, 70, true); // Slower for title with progress
+        console.log('✅ Title typing completed');
+    }
+    
+    // Enhanced subtitle update with typing effect
+    async updateSubtitleWithTyping(doc, subtitle) {
+        const subtitleElement = doc.querySelector('#ai-subtitle');
+        if (subtitleElement) {
+            await this.sleep(500); // Pause between title and subtitle
+            
+            // Update status for subtitle
+            const statusMessage = document.getElementById('status-message');
+            if (statusMessage) {
+                statusMessage.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 14px;">📝 부제목 생성 중...</span>
+                        <div class="spinner" style="width: 12px; height: 12px; border-width: 1px;"></div>
+                    </div>
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                        설명이 담긴 부제목을 작성합니다.
+                    </div>
+                `;
+            }
+            
+            await this.typeText(subtitleElement, subtitle, 50, true);
+        }
+    }
+    
+    // Enhanced features update with typing effect
+    async updateFeaturesWithTyping(doc, features) {
+        // Update status for features generation
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 14px;">🎯 특징 섹션 생성 중...</span>
+                    <div class="spinner" style="width: 12px; height: 12px; border-width: 1px;"></div>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    핵심 특징들을 정리하고 있습니다.
+                </div>
+            `;
+        }
+        
+        // Create and populate feature cards with typing
+        const gridElement = doc.querySelector('#ai-features');
+        if (gridElement && features) {
+            gridElement.innerHTML = ''; // Clear existing cards
+            
+            for (let i = 0; i < features.length; i++) {
+                const feature = features[i];
+                
+                // Create card structure
+                const card = doc.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <h3></h3>
+                    <p></p>
+                `;
+                gridElement.appendChild(card);
+                
+                // Add entrance animation
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, i * 300);
+                
+                // Type feature title
+                const titleElement = card.querySelector('h3');
+                await this.sleep(200);
+                await this.typeText(titleElement, feature.title, 60);
+                
+                // Type feature description
+                const descElement = card.querySelector('p');
+                await this.sleep(300);
+                await this.typeText(descElement, feature.desc, 35);
+                
+                // Pause before next card
+                await this.sleep(500);
+            }
+        }
+        
+        // Generate placeholder image with typing effect
+        await this.sleep(1000);
+        await this.generateImagesWithTyping(doc);
+    }
+    
+    // Enhanced image generation with typing announcements
+    async generateImagesWithTyping(doc) {
+        const imageElement = doc.querySelector('#ai-image');
+        if (!imageElement) return;
+        
+        // Start with loading message
+        await this.typeText(imageElement, '관련 이미지를 생성하고 있습니다...', 30);
+        
+        await this.sleep(2000);
+        
+        // Clear and show generated image
+        imageElement.innerHTML = '';
+        const imageTypes = [
+            { type: 'infographic', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: '📊' },
+            { type: 'diagram', bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', icon: '🔄' },
+            { type: 'illustration', bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', icon: '🎨' }
+        ];
+        const randomImage = imageTypes[Math.floor(Math.random() * imageTypes.length)];
+        
+        imageElement.innerHTML = `
+            <div style="
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                background: ${randomImage.bg};
+                color: white;
+                font-weight: 600;
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+            ">
+                <div style="font-size: 2.5em; margin-bottom: 12px;">${randomImage.icon}</div>
+                <div style="font-size: 16px; text-align: center; line-height: 1.4;">
+                    AI 생성 이미지<br/>${randomImage.type.charAt(0).toUpperCase() + randomImage.type.slice(1)}
+                </div>
+                <div style="
+                    position: absolute;
+                    top: 12px;
+                    right: 12px;
+                    background: rgba(255,255,255,0.25);
+                    padding: 6px 12px;
+                    border-radius: 16px;
+                    font-size: 12px;
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.2);
+                ">
+                    ✨ NEW
+                </div>
+            </div>
+        `;
+        
+        // Fade in the generated image
+        imageElement.style.opacity = '0';
+        imageElement.style.transform = 'scale(0.95)';
+        imageElement.style.transition = 'all 0.6s ease';
+        
+        setTimeout(() => {
+            imageElement.style.opacity = '1';
+            imageElement.style.transform = 'scale(1)';
+        }, 100);
+    }
+    
+    // Enhanced AI thinking process with real-time status updates
+    async showAIProcess(doc) {
+        console.log('📋 Starting AI process steps...');
+        
+        const processSteps = [
+            { 
+                message: '🔍 컨텐츠 구조 분석 중...', 
+                detail: '페이지 유형과 필요한 섹션을 파악하고 있습니다.',
+                duration: 800 
+            },
+            { 
+                message: '🤖 AI 모델 실행 중...', 
+                detail: '자연어 생성 모델을 초기화하고 있습니다.',
+                duration: 600 
+            },
+            { 
+                message: '🔑 키워드 추출 및 분석...', 
+                detail: '핵심 키워드와 주제를 분석하여 맥락을 파악합니다.',
+                duration: 700 
+            },
+            { 
+                message: '✍️ 텍스트 생성 중...', 
+                detail: '고품질 콘텐츠를 생성하고 있습니다.',
+                duration: 900 
+            },
+            { 
+                message: '✅ 품질 검증 중...', 
+                detail: '생성된 콘텐츠의 품질과 일관성을 검증합니다.',
+                duration: 500 
+            }
+        ];
+        
+        // Show process in both status message and submenu status
+        const statusMessage = document.getElementById('status-message');
+        const currentSubmenuItem = document.querySelector('.submenu-item[data-status="processing"]');
+        
+        console.log('📊 Status elements found:', { 
+            statusMessage: !!statusMessage, 
+            currentSubmenuItem: !!currentSubmenuItem 
+        });
+        
+        for (let i = 0; i < processSteps.length; i++) {
+            const step = processSteps[i];
+            console.log(`🔄 Processing step ${i + 1}/${processSteps.length}: ${step.message}`);
+            
+            // Update main status message
+            if (statusMessage) {
+                statusMessage.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 14px;">${step.message}</span>
+                        <div class="spinner" style="width: 12px; height: 12px; border-width: 1px;"></div>
+                    </div>
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px; font-style: italic;">
+                        ${step.detail}
+                    </div>
+                `;
+            }
+            
+            // Update submenu item status if available
+            if (currentSubmenuItem) {
+                const progress = Math.round(((i + 1) / processSteps.length) * 100);
+                currentSubmenuItem.setAttribute('data-progress', progress);
+                
+                // Add progress indicator to submenu title
+                const submenuTitle = currentSubmenuItem.querySelector('.submenu-title');
+                if (submenuTitle) {
+                    const baseTitle = submenuTitle.textContent.replace(/ \(.*\)$/, '');
+                    submenuTitle.innerHTML = `${baseTitle} <span style="color: #6366F1; font-size: 11px;">(${progress}%)</span>`;
+                }
+            }
+            
+            await this.sleep(step.duration);
+        }
+        
+        // Final completion message
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; color: #059669;">
+                    <span style="font-size: 14px;">🎉 AI 프로세스 완료!</span>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    이제 실시간 타이핑이 시작됩니다.
+                </div>
+            `;
+        }
+        
+        console.log('✅ AI process steps completed');
     }
 }

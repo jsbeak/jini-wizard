@@ -8,18 +8,29 @@ class PreviewManager {
         this.currentUrl = '';
     }
     
-    async loadPage(url) {
+    async loadPage(url, showBlankForAI = true) {
         // Update URL display
         this.currentUrl = url;
         this.urlDisplay.textContent = `https://mysite.com${url}`;
         
-        // Add page transition animation
+        // Show blank page ready for AI typing
+        if (showBlankForAI) {
+            const blankContent = this.createBlankPageForTyping();
+            this.iframe.srcdoc = blankContent;
+            await this.sleep(200); // Allow time for setup
+            
+            // Apply zoom to blank page
+            this.applyZoom();
+            
+            // The AI simulator will handle the content generation
+            // Don't load template content here - let AI simulator do it
+            return;
+        }
+        
+        // Add page transition animation for completed pages
         await this.animatePageTransition();
         
-        // Create or load template page
-        const templatePath = `templates${url}.html`;
-        
-        // For demo purposes, we'll create a simple template
+        // Create template page for already completed pages
         const pageContent = this.createTemplateContent(url);
         
         // Load content into iframe
@@ -27,6 +38,11 @@ class PreviewManager {
         
         // Apply zoom
         this.applyZoom();
+        
+        // Add staggered animations after content loads
+        this.iframe.onload = () => {
+            this.addStaggeredAnimations();
+        };
     }
     
     createTemplateContent(url) {
@@ -373,5 +389,294 @@ class PreviewManager {
         if (this.currentUrl) {
             this.loadPage(this.currentUrl);
         }
+    }
+    
+    createSkeletonContent() {
+        return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Loading...</title>
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        background: #f5f5f5;
+                    }
+                    
+                    .skeleton-screen {
+                        background-color: #fff;
+                        min-height: 100vh;
+                        padding: 20px;
+                    }
+                    
+                    .skeleton-header {
+                        height: 60px;
+                        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                        background-size: 200% 100%;
+                        animation: skeletonLoading 1.0s infinite;
+                        margin-bottom: 20px;
+                    }
+                    
+                    .skeleton-hero {
+                        height: 300px;
+                        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                        background-size: 200% 100%;
+                        animation: skeletonLoading 1.0s infinite;
+                        margin-bottom: 40px;
+                        border-radius: 8px;
+                    }
+                    
+                    .skeleton-content {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                    }
+                    
+                    .skeleton-title {
+                        height: 40px;
+                        width: 60%;
+                        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                        background-size: 200% 100%;
+                        animation: skeletonLoading 1.0s infinite;
+                        margin-bottom: 20px;
+                        border-radius: 4px;
+                    }
+                    
+                    .skeleton-text {
+                        height: 20px;
+                        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                        background-size: 200% 100%;
+                        animation: skeletonLoading 1.0s infinite;
+                        margin-bottom: 10px;
+                        border-radius: 4px;
+                    }
+                    
+                    .skeleton-text:nth-child(1) { width: 90%; }
+                    .skeleton-text:nth-child(2) { width: 80%; }
+                    .skeleton-text:nth-child(3) { width: 85%; }
+                    
+                    .skeleton-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 30px;
+                        margin-top: 40px;
+                    }
+                    
+                    .skeleton-card {
+                        height: 200px;
+                        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                        background-size: 200% 100%;
+                        animation: skeletonLoading 1.0s infinite;
+                        border-radius: 8px;
+                    }
+                    
+                    @keyframes skeletonLoading {
+                        0% {
+                            background-position: -200px 0;
+                        }
+                        100% {
+                            background-position: calc(200px + 100%) 0;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="skeleton-screen">
+                    <div class="skeleton-header"></div>
+                    <div class="skeleton-hero"></div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-grid">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
+    addStaggeredAnimations() {
+        if (this.iframe && this.iframe.contentDocument) {
+            const doc = this.iframe.contentDocument;
+            
+            // Add stagger class to containers
+            const containers = doc.querySelectorAll('.content .container > *, .grid');
+            containers.forEach((container, index) => {
+                container.style.opacity = '0';
+                container.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    container.style.transition = 'all 0.5s ease';
+                    container.style.opacity = '1';
+                    container.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+            
+            // Add scroll animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -100px 0px'
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe cards and other scrollable elements
+            const scrollElements = doc.querySelectorAll('.card');
+            scrollElements.forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(30px)';
+                el.style.transition = 'all 0.6s ease';
+                observer.observe(el);
+            });
+        }
+    }
+    
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // Create blank page ready for AI real-time typing
+    createBlankPageForTyping() {
+        return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>AI 콘텐츠 생성 중</title>
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        background-color: #ffffff;
+                        padding: 40px;
+                        min-height: 100vh;
+                    }
+                    
+                    .container {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                    }
+                    
+                    /* AI Typing Cursor */
+                    .typing-cursor {
+                        display: inline-block;
+                        width: 2px;
+                        height: 1.2em;
+                        background-color: #6366F1;
+                        animation: blink 1s infinite;
+                        margin-left: 2px;
+                    }
+                    
+                    @keyframes blink {
+                        0%, 50% { opacity: 1; }
+                        51%, 100% { opacity: 0; }
+                    }
+                    
+                    h1 {
+                        font-size: 2.5rem;
+                        font-weight: 700;
+                        color: #1f2937;
+                        margin-bottom: 1rem;
+                        line-height: 1.2;
+                    }
+                    
+                    .subtitle {
+                        font-size: 1.25rem;
+                        color: #6b7280;
+                        margin-bottom: 2rem;
+                        font-weight: 500;
+                    }
+                    
+                    .content {
+                        margin-bottom: 3rem;
+                    }
+                    
+                    .content p {
+                        font-size: 1.1rem;
+                        margin-bottom: 1.5rem;
+                        color: #374151;
+                    }
+                    
+                    .grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                        gap: 2rem;
+                        margin-top: 3rem;
+                    }
+                    
+                    .card {
+                        background: #f8fafc;
+                        padding: 2rem;
+                        border-radius: 12px;
+                        border: 1px solid #e2e8f0;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .card h3 {
+                        font-size: 1.25rem;
+                        font-weight: 600;
+                        color: #1f2937;
+                        margin-bottom: 0.75rem;
+                    }
+                    
+                    .card p {
+                        color: #6b7280;
+                        font-size: 1rem;
+                    }
+                    
+                    .image-placeholder {
+                        width: 100%;
+                        height: 200px;
+                        background: #f1f5f9;
+                        border-radius: 8px;
+                        margin: 2rem 0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: #64748b;
+                        font-size: 0.9rem;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1 id="ai-title"></h1>
+                    <div class="subtitle" id="ai-subtitle"></div>
+                    <div class="content" id="ai-content"></div>
+                    <div class="image-placeholder" id="ai-image"></div>
+                    <div class="grid" id="ai-features"></div>
+                </div>
+            </body>
+            </html>
+        `;
     }
 }

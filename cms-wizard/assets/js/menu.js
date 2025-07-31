@@ -15,6 +15,9 @@ class MenuManager {
             this.menuList.appendChild(menuItem);
         });
         
+        // Clean up any existing pulse animations
+        this.cleanupPulseAnimations();
+        
         // Auto-expand first menu
         if (this.menuData.menus.length > 0) {
             const firstMenuItem = this.menuList.querySelector('.menu-item');
@@ -69,7 +72,8 @@ class MenuManager {
         // Add click handler
         submenuItem.addEventListener('click', () => {
             if (submenu.status === 'completed') {
-                this.app.previewManager.loadPage(submenu.url);
+                // Load completed page without AI simulation
+                this.app.previewManager.loadPage(submenu.url, false);
             }
         });
         
@@ -137,7 +141,12 @@ class MenuManager {
             
             // Add animation for status change
             if (menu.status === 'completed') {
+                menuItem.classList.remove('pulse'); // Remove pulse animation
                 this.animateCompletion(icon);
+            } else if (menu.status === 'processing') {
+                menuItem.classList.add('pulse');
+            } else {
+                menuItem.classList.remove('pulse'); // Clean up pulse animation
             }
         }
     }
@@ -155,9 +164,12 @@ class MenuManager {
             
             // Add animation for status change
             if (status === 'completed') {
+                submenuItem.classList.remove('pulse'); // Remove pulse animation
                 this.animateCompletion(icon);
             } else if (status === 'processing') {
                 submenuItem.classList.add('pulse');
+            } else {
+                submenuItem.classList.remove('pulse'); // Clean up pulse animation
             }
         }
     }
@@ -217,5 +229,16 @@ class MenuManager {
         setTimeout(() => {
             ripple.remove();
         }, 600);
+    }
+    
+    // Clean up pulse animations for completed items
+    cleanupPulseAnimations() {
+        const allPulseItems = this.menuList.querySelectorAll('.pulse');
+        allPulseItems.forEach(item => {
+            const status = item.dataset.status;
+            if (status === 'completed' || status === 'waiting') {
+                item.classList.remove('pulse');
+            }
+        });
     }
 }

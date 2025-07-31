@@ -70,6 +70,16 @@ class CMSWizardApp {
         // Header buttons
         document.getElementById('btn-help').addEventListener('click', () => this.showHelp());
         document.getElementById('btn-settings').addEventListener('click', () => this.showSettings());
+        
+        // Add click feedback to all buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (!btn.disabled) {
+                    btn.classList.add('animate-buttonPress');
+                    setTimeout(() => btn.classList.remove('animate-buttonPress'), 200);
+                }
+            });
+        });
     }
     
     startIntroSequence() {
@@ -145,6 +155,9 @@ class CMSWizardApp {
         this.completedPages++;
         this.updateProgress();
         
+        // Clean up any lingering pulse animations
+        this.menuManager.cleanupPulseAnimations();
+        
         this.isProcessing = false;
         
         // Process next page after a short delay
@@ -177,14 +190,31 @@ class CMSWizardApp {
     
     updateStatusMessage(status) {
         const statusMessage = document.getElementById('status-message');
+        const loadingMessage = document.getElementById('loading-message');
+        const loadingTitle = document.getElementById('loading-title');
+        const loadingSubtitle = document.getElementById('loading-subtitle');
         
-        if (status === 'processing' && this.currentMenu) {
+        if (status === 'processing' && this.currentMenu && this.currentSubmenu) {
+            // Hide status message and show loading message
+            statusMessage.style.display = 'none';
+            loadingMessage.style.display = 'block';
+            
+            // Update loading title with current page
+            loadingTitle.textContent = `${this.currentSubmenu.title} 페이지를 생성합니다`;
+            
+            // Get random status message
             const messages = this.menuData.statusMessages[this.currentMenu.id];
             const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-            statusMessage.textContent = randomMessage;
+            loadingSubtitle.textContent = randomMessage;
         } else if (status === 'completed') {
+            // Show status message and hide loading message
+            statusMessage.style.display = 'block';
+            loadingMessage.style.display = 'none';
             statusMessage.textContent = '완료!';
         } else {
+            // Show status message and hide loading message
+            statusMessage.style.display = 'block';
+            loadingMessage.style.display = 'none';
             statusMessage.textContent = '준비 중...';
         }
     }

@@ -221,6 +221,16 @@
     }
 }
 
+/* Typing Cursor Blink Animation */
+@keyframes blink {
+    0%, 50% { 
+        opacity: 1; 
+    }
+    51%, 100% { 
+        opacity: 0; 
+    }
+}
+
 /* Checkmark Animation */
 @keyframes stroke {
     100% {
@@ -294,6 +304,82 @@
     animation: shimmer 2s infinite;
 }
 
+/* Click Feedback Animation */
+@keyframes buttonPress {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Staggered Slide In Animation */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scale Up Animation */
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeletonLoading {
+    0% {
+        background-position: -200px 0;
+    }
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+/* Wave Animation for Progress Bars */
+@keyframes wave {
+    0% {
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Multiple Progress Bars Animation */
+@keyframes multiBarFlow {
+    0% {
+        transform: scaleX(0) translateX(0);
+    }
+    40% {
+        transform: scaleX(1) translateX(0);
+    }
+    60% {
+        transform: scaleX(1) translateX(0);
+    }
+    100% {
+        transform: scaleX(0) translateX(100%);
+    }
+}
+
 /* Utility Animation Classes */
 .animate-fadeIn {
     animation: fadeIn var(--transition-base) ease;
@@ -311,12 +397,32 @@
     animation: slideInRight var(--transition-base) ease;
 }
 
+.animate-slideInUp {
+    animation: slideInUp var(--transition-base) ease;
+}
+
+.animate-scaleUp {
+    animation: scaleUp var(--transition-base) ease;
+}
+
 .animate-bounce {
     animation: bounce 0.6s ease;
 }
 
 .animate-shake {
     animation: shake 0.5s ease;
+}
+
+.animate-buttonPress {
+    animation: buttonPress 0.08s ease;
+    will-change: transform;
+    transform: translateZ(0); /* Force hardware acceleration */
+}
+
+/* Spinner Animation for AI Loading */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Page Transition Classes */
