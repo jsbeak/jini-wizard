@@ -6,6 +6,17 @@ body {
     background-color: var(--bg-secondary);
     height: 100vh;
     overflow: hidden;
+    
+    /* Performance optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transform: translateZ(0); /* Force hardware acceleration */
+    backface-visibility: hidden;
+    perspective: 1000px;
+    
+    /* Scroll performance */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Intro Screen */
@@ -23,6 +34,10 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--transition-slow), visibility var(--transition-slow);
+    
+    /* GPU acceleration for smooth transitions */
+    will-change: opacity, visibility;
+    transform: translateZ(0);
 }
 
 .intro-screen.active {
@@ -79,6 +94,11 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--transition-slow), visibility var(--transition-slow);
+    
+    /* GPU acceleration */
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    contain: layout style paint;
 }
 
 .main-interface.active {
@@ -96,6 +116,10 @@ body {
     justify-content: space-between;
     padding: 0 var(--space-lg);
     z-index: var(--z-sticky);
+    
+    /* Performance optimization */
+    contain: layout style;
+    transform: translateZ(0);
 }
 
 .header-logo {

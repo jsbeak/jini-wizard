@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSP 연동 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #f9fafb;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        h1, h2 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #5b46f1;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .result {
+            background: #f3f4f6;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        
+        .status.online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .info-item {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-value {
+            color: #6b7280;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 JSP 콘텐츠 저장소 연동 테스트</h1>
+        <p>JSP API와 JSPContentStorage 클래스의 연동 상태를 테스트합니다.</p>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">JSP ContentStorage 상태</div>
+                <div class="info-value" id="storage-status">초기화 중...</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">서버 연결 상태</div>
+                <div class="info-value" id="server-status">확인 중...</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">로컬 콘텐츠 수</div>
+                <div class="info-value" id="local-content-count">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">동기화 큐</div>
+                <div class="info-value" id="sync-queue-size">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>1. 서버 상태 확인</h2>
+        <div class="test-section">
+            <button class="btn" onclick="testServerHealth()">서버 상태 확인</button>
+            <button class="btn btn-secondary" onclick="testSitesList()">사이트 목록 조회</button>
+            <div id="server-test-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>2. 콘텐츠 저장 테스트</h2>
+        <div class="test-section">
+            <button class="btn" onclick="testContentSave()">테스트 콘텐츠 저장</button>
+            <button class="btn btn-secondary" onclick="testContentLoad()">저장된 콘텐츠 조회</button>
+            <div id="content-test-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>3. 하이브리드 저장소 테스트</h2>
+        <div class="test-section">
+            <button class="btn" onclick="testHybridStorage()">하이브리드 저장 테스트</button>
+            <button class="btn btn-secondary" onclick="testSyncQueue()">동기화 큐 테스트</button>
+            <button class="btn btn-secondary" onclick="showDebugInfo()">디버그 정보</button>
+            <div id="hybrid-test-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>4. 실시간 상태 모니터링</h2>
+        <div class="test-section">
+            <button class="btn" onclick="startMonitoring()">모니터링 시작</button>
+            <button class="btn btn-secondary" onclick="stopMonitoring()">모니터링 중지</button>
+            <div id="monitoring-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/content-storage.js"></script>
+    <script src="assets/js/jsp-content-storage.js"></script>
+    
+    <script>
+        let storage = null;
+        let monitoringInterval = null;
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 JSP 연동 테스트 페이지 로드');
+            
+            // JSP ContentStorage 초기화 대기
+            setTimeout(async () => {
+                if (window.jspContentStorage) {
+                    storage = window.jspContentStorage;
+                    updateStatus();
+                } else {
+                    document.getElementById('storage-status').innerHTML = '❌ JSP ContentStorage 초기화 실패';
+                }
+            }, 1000);
+        });
+        
+        // 상태 업데이트
+        async function updateStatus() {
+            if (!storage) return;
+            
+            const status = storage.getStatus();
+            
+            document.getElementById('storage-status').innerHTML = 
+                `✅ 초기화 완료 ${status.hybridMode ? '(하이브리드)' : '(로컬)'}`;
+            
+            document.getElementById('server-status').innerHTML = 
+                status.serverAvailable ? 
+                '<span class="status online">온라인</span>' : 
+                '<span class="status offline">오프라인</span>';
+            
+            document.getElementById('local-content-count').textContent = status.localContentSize;
+            document.getElementById('sync-queue-size').textContent = status.syncQueueSize;
+        }
+        
+        // 서버 상태 확인
+        async function testServerHealth() {
+            showLoading('server-test-result');
+            
+            try {
+                const isHealthy = await storage.checkServerHealth();
+                const result = {
+                    timestamp: new Date().toISOString(),
+                    serverHealthy: isHealthy,
+                    message: isHealthy ? '서버 연결 성공' : '서버 연결 실패'
+                };
+                
+                showResult('server-test-result', result, isHealthy);
+                updateStatus();
+            } catch (error) {
+                showResult('server-test-result', { error: error.message }, false);
+            }
+        }
+        
+        // 사이트 목록 조회
+        async function testSitesList() {
+            showLoading('server-test-result');
+            
+            try {
+                const sites = await storage.getAllSites(true);
+                showResult('server-test-result', sites, true);
+            } catch (error) {
+                showResult('server-test-result', { error: error.message }, false);
+            }
+        }
+        
+        // 콘텐츠 저장 테스트
+        async function testContentSave() {
+            showLoading('content-test-result');
+            
+            try {
+                const testContent = {
+                    title: '테스트 페이지',
+                    subtitle: 'JSP 연동 테스트를 위한 샘플 콘텐츠',
+                    mainContent: ['이것은 테스트 콘텐츠입니다.', '하이브리드 저장소 테스트 중입니다.'],
+                    features: [
+                        { title: '기능 1', description: '테스트 기능 설명 1' },
+                        { title: '기능 2', description: '테스트 기능 설명 2' }
+                    ],
+                    processingTime: 1.5
+                };
+                
+                const result = await storage.storeGeneratedContent('test/sample', testContent);
+                showResult('content-test-result', result, true);
+                updateStatus();
+            } catch (error) {
+                showResult('content-test-result', { error: error.message }, false);
+            }
+        }
+        
+        // 콘텐츠 조회 테스트
+        async function testContentLoad() {
+            showLoading('content-test-result');
+            
+            try {
+                const result = await storage.getGeneratedContent('test/sample');
+                if (result) {
+                    showResult('content-test-result', result, true);
+                } else {
+                    showResult('content-test-result', { message: '저장된 콘텐츠가 없습니다.' }, false);
+                }
+            } catch (error) {
+                showResult('content-test-result', { error: error.message }, false);
+            }
+        }
+        
+        // 하이브리드 저장소 테스트
+        async function testHybridStorage() {
+            showLoading('hybrid-test-result');
+            
+            try {
+                // 여러 콘텐츠 동시 저장
+                const promises = [];
+                for (let i = 1; i <= 3; i++) {
+                    const content = {
+                        title: `하이브리드 테스트 ${i}`,
+                        subtitle: `테스트 콘텐츠 ${i}`,
+                        mainContent: [`테스트 내용 ${i}`],
+                        features: [{ title: `기능 ${i}`, description: `설명 ${i}` }]
+                    };
+                    promises.push(storage.storeGeneratedContent(`hybrid/test${i}`, content));
+                }
+                
+                const results = await Promise.all(promises);
+                showResult('hybrid-test-result', { savedCount: results.length, results }, true);
+                updateStatus();
+            } catch (error) {
+                showResult('hybrid-test-result', { error: error.message }, false);
+            }
+        }
+        
+        // 동기화 큐 테스트
+        async function testSyncQueue() {
+            showLoading('hybrid-test-result');
+            
+            try {
+                await storage.syncLocalToServer();
+                const status = storage.getStatus();
+                showResult('hybrid-test-result', { 
+                    message: '동기화 완료',
+                    syncQueueSize: status.syncQueueSize,
+                    status 
+                }, true);
+                updateStatus();
+            } catch (error) {
+                showResult('hybrid-test-result', { error: error.message }, false);
+            }
+        }
+        
+        // 디버그 정보
+        function showDebugInfo() {
+            storage.debug();
+            const status = storage.getStatus();
+            showResult('hybrid-test-result', { debugInfo: status }, true);
+        }
+        
+        // 모니터링 시작
+        function startMonitoring() {
+            if (monitoringInterval) return;
+            
+            const resultDiv = document.getElementById('monitoring-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '실시간 모니터링 시작...\n';
+            
+            monitoringInterval = setInterval(async () => {
+                const status = storage.getStatus();
+                const timestamp = new Date().toLocaleTimeString();
+                
+                resultDiv.textContent += `[${timestamp}] 서버: ${status.serverAvailable ? 'ON' : 'OFF'}, ` +
+                    `로컬: ${status.localContentSize}개, 큐: ${status.syncQueueSize}개\n`;
+                
+                resultDiv.scrollTop = resultDiv.scrollHeight;
+                updateStatus();
+            }, 2000);
+        }
+        
+        // 모니터링 중지
+        function stopMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+                
+                const resultDiv = document.getElementById('monitoring-result');
+                resultDiv.textContent += '\n모니터링 중지됨.\n';
+            }
+        }
+        
+        // 로딩 표시
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result';
+            element.innerHTML = '<span class="loading"></span>테스트 진행 중...';
+        }
+        
+        // 결과 표시
+        function showResult(elementId, data, success) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = success ? 'result success' : 'result error';
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // 페이지 언로드 시 모니터링 정리
+        window.addEventListener('beforeunload', () => {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+        });
+    </script>
+</body>
+</html>

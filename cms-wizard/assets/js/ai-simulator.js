@@ -3,7 +3,9 @@ class AISimulator {
     constructor(app) {
         this.app = app;
         this.generationDelay = { min: 1000, max: 3000 };
+        this.timeoutDelay = 30000; // 30 seconds timeout
         this.contentDatabase = this.initContentDatabase();
+        this.currentTimeout = null;
     }
     
     initContentDatabase() {
@@ -365,47 +367,84 @@ class AISimulator {
     
     async generateContent(pageData) {
         const { menu, submenu } = pageData;
-        const contentData = this.contentDatabase[menu.id]?.[submenu.id];
+        const pageId = `${menu.id}/${submenu.id}`;
         
-        if (!contentData) {
-            console.warn(`No content data for ${menu.id}/${submenu.id}`);
-            return;
+        console.log('🚀 AI 콘텐츠 생성 시작:', pageId);
+        
+        // Set up timeout for AI generation
+        const timeoutPromise = new Promise((_, reject) => {
+            this.currentTimeout = setTimeout(() => {
+                reject(new Error('AI 생성 시간이 초과되었습니다'));
+            }, this.timeoutDelay);
+        });
+        
+        const generationPromise = this.performGeneration(pageData, pageId);
+        
+        try {
+            // Race between generation and timeout
+            await Promise.race([generationPromise, timeoutPromise]);
+            
+            // Clear timeout if generation completed successfully
+            if (this.currentTimeout) {
+                clearTimeout(this.currentTimeout);
+                this.currentTimeout = null;
+            }
+            
+            console.log('✅ AI 콘텐츠 생성 및 저장 완료');
+            
+        } catch (error) {
+            // Clear timeout
+            if (this.currentTimeout) {
+                clearTimeout(this.currentTimeout);
+                this.currentTimeout = null;
+            }
+            
+            console.error('❌ AI 생성 실패:', error);
+            
+            if (error.message.includes('시간이 초과')) {
+                this.app.showErrorModal(error.message);
+            } else {
+                await this.handleGenerationError(error, pageData);
+            }
         }
+    }
+    
+    async performGeneration(pageData, pageId) {
+        const { menu, submenu } = pageData;
         
-        // Wait for iframe to be ready and get document
+        // 1. CMS 페이지 로드 (완성된 HTML 그대로)
+        await this.app.previewManager.loadCMSPageForAI(pageId);
+        
+        // 2. iframe 준비 확인
         const iframeDoc = await this.waitForIframeReady();
         if (!iframeDoc) {
-            console.error('Failed to access iframe document');
-            return;
+            throw new Error('iframe 문서에 접근할 수 없습니다');
         }
         
-        console.log('🚀 Starting AI content generation for:', `${menu.id}/${submenu.id}`);
+        // 3. #cms-content 영역 확인
+        const contentArea = iframeDoc.querySelector('#cms-content');
+        if (!contentArea) {
+            throw new Error('#cms-content 영역을 찾을 수 없습니다');
+        }
         
-        // Update page layout (GNB, LNB, breadcrumb, page title)
-        await this.updatePageLayout(iframeDoc, pageData);
+        console.log('✅ CMS 페이지 및 콘텐츠 영역 준비 완료');
         
-        // Show AI thinking process with detailed steps
+        // 4. AI 프로세스 시뮬레이션
         await this.showAIProcess(iframeDoc);
         
-        // Simulate initial AI processing delay
-        await this.sleep(800);
+        // 5. 콘텐츠 데이터 확인
+        const contentData = this.contentDatabase[menu.id]?.[submenu.id];
+        if (!contentData) {
+            console.warn(`⚠️ 콘텐츠 데이터 없음: ${pageId}, 기본 콘텐츠 생성`);
+            await this.generateDefaultContent(contentArea, pageData);
+        } else {
+            // 6. 콘텐츠 영역 클리어 후 AI 생성
+            contentArea.innerHTML = '';
+            await this.generateAIContentInArea(contentArea, contentData, pageData);
+        }
         
-        // Update main content title with realistic typing effect
-        await this.updateTitleWithTyping(iframeDoc, contentData.title);
-        
-        // Update subtitle with typing effect
-        await this.updateSubtitleWithTyping(iframeDoc, contentData.subtitle);
-        
-        // Update content paragraphs with typing effect
-        await this.updateContentWithTyping(iframeDoc, contentData.content);
-        
-        // Update feature cards with typing effect
-        await this.updateFeaturesWithTyping(iframeDoc, contentData.features);
-        
-        // Final completion message
-        this.showCompletionMessage();
-        
-        console.log('✅ AI content generation completed');
+        // 7. 생성 완료 즉시 CMS에 저장
+        await this.saveGeneratedContentToCMS(pageData, contentArea.innerHTML);
     }
     
     // Wait for iframe to be ready and return document
@@ -1190,5 +1229,198 @@ class AISimulator {
         }
         
         console.log('✅ AI process steps completed');
+    }
+    
+    /**
+     * 콘텐츠 영역에 AI 생성 콘텐츠 삽입
+     */
+    async generateAIContentInArea(contentArea, contentData, pageData) {
+        console.log('🎨 콘텐츠 영역에 AI 생성 시작...');
+        
+        // AI 생성 영역 HTML 구조 생성
+        contentArea.innerHTML = `
+            <div class="ai-content-container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+                <div class="hero-section" style="margin-bottom: 40px;">
+                    <h1 id="ai-title" style="font-size: 2.5rem; font-weight: 700; color: #1f2937; margin-bottom: 16px; line-height: 1.2;"></h1>
+                    <p id="ai-subtitle" style="font-size: 1.25rem; color: #6b7280; line-height: 1.6;"></p>
+                </div>
+                <div class="content-section" style="margin-bottom: 40px;">
+                    <div id="ai-content" style="font-size: 1.1rem; line-height: 1.8; color: #374151;"></div>
+                </div>
+                <div class="features-section" style="margin-bottom: 40px;">
+                    <div id="ai-features" class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;"></div>
+                </div>
+                <div class="image-section">
+                    <div id="ai-image" class="ai-image-placeholder" style="height: 200px; background: #f3f4f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #9ca3af;"></div>
+                </div>
+            </div>
+        `;
+        
+        const doc = contentArea.ownerDocument;
+        
+        // 기존 타이핑 효과 로직 활용
+        await this.updateTitleWithTyping(doc, contentData.title);
+        await this.updateSubtitleWithTyping(doc, contentData.subtitle);
+        await this.updateContentWithTyping(doc, contentData.content);
+        await this.updateFeaturesWithTyping(doc, contentData.features);
+        
+        console.log('✅ 콘텐츠 영역 AI 생성 완료');
+    }
+    
+    /**
+     * 기본 콘텐츠 생성 (데이터가 없는 경우)
+     */
+    async generateDefaultContent(contentArea, pageData) {
+        console.log('📝 기본 콘텐츠 생성 중...');
+        
+        const { menu, submenu } = pageData;
+        const pageTitle = submenu.koreanTitle || submenu.title || '새로운 페이지';
+        
+        const defaultContent = {
+            title: `${pageTitle}`,
+            subtitle: 'AI가 생성한 전문적인 콘텐츠입니다',
+            content: [
+                `${pageTitle} 페이지에 오신 것을 환영합니다.`,
+                '최고 품질의 서비스와 솔루션을 제공하기 위해 최선을 다하고 있습니다.',
+                '더 자세한 정보가 필요하시면 언제든 연락주시기 바랍니다.'
+            ],
+            features: [
+                { title: '전문성', desc: '해당 분야의 전문가들이 직접 관리합니다' },
+                { title: '품질', desc: '최고 품질의 서비스를 제공합니다' },
+                { title: '지원', desc: '24/7 고객 지원 서비스를 운영합니다' }
+            ]
+        };
+        
+        await this.generateAIContentInArea(contentArea, defaultContent, pageData);
+    }
+    
+    /**
+     * 생성된 콘텐츠를 ContentStorage에 저장
+     */
+    async saveGeneratedContentToCMS(pageData, htmlContent) {
+        const { menu, submenu } = pageData;
+        const pageId = `${menu.id}/${submenu.id}`;
+        
+        try {
+            console.log('💾 생성된 콘텐츠 저장 중...', pageId);
+            
+            // ContentStorage에 저장할 데이터 준비
+            const contentData = this.contentDatabase[menu.id]?.[submenu.id];
+            if (contentData && window.contentStorage) {
+                const result = window.contentStorage.storeGeneratedContent(pageId, {
+                    title: contentData.title,
+                    subtitle: contentData.subtitle,
+                    mainContent: contentData.content,
+                    features: contentData.features,
+                    processingTime: Math.floor(Math.random() * 5) + 2, // 시뮬레이션된 처리 시간
+                    metadata: {
+                        menuId: menu.id,
+                        submenuId: submenu.id,
+                        pageType: 'generated',
+                        generatedAt: new Date().toISOString()
+                    }
+                });
+                
+                this.showSaveSuccessMessage(pageId, { success: true, mode: 'simulation' });
+                console.log('✅ ContentStorage 저장 완료:', result.timestamp);
+            } else {
+                throw new Error('ContentStorage가 초기화되지 않았거나 콘텐츠 데이터가 없습니다');
+            }
+            
+        } catch (error) {
+            console.error('❌ 콘텐츠 저장 오류:', error);
+            this.showSaveErrorMessage(pageId, error.message);
+        }
+    }
+    
+    /**
+     * 저장 성공 메시지 표시
+     */
+    showSaveSuccessMessage(pageId, result) {
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            const modeText = result.mode === 'simulation' ? '(시뮬레이션)' : '';
+            
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; color: #059669;">
+                    <span style="font-size: 14px;">💾 저장 완료! ${modeText}</span>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    ${pageId} 페이지가 성공적으로 저장되었습니다.
+                </div>
+            `;
+        }
+    }
+    
+    /**
+     * 저장 실패 메시지 표시
+     */
+    showSaveErrorMessage(pageId, errorMessage) {
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; color: #DC2626;">
+                    <span style="font-size: 14px;">❌ 저장 실패</span>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    ${pageId}: ${errorMessage}
+                </div>
+            `;
+        }
+    }
+    
+    /**
+     * 생성 오류 처리
+     */
+    async handleGenerationError(error, pageData) {
+        console.error('🚨 AI 생성 오류 처리:', error.message);
+        
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; color: #DC2626;">
+                    <span style="font-size: 14px;">❌ 생성 실패</span>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    ${error.message}
+                </div>
+            `;
+        }
+        
+        // 폴백으로 기존 방식 시도
+        try {
+            console.log('🔄 폴백 모드로 콘텐츠 생성 시도...');
+            await this.generateContentFallback(pageData);
+        } catch (fallbackError) {
+            console.error('❌ 폴백 생성도 실패:', fallbackError);
+        }
+    }
+    
+    /**
+     * 폴백 콘텐츠 생성 (기존 방식)
+     */
+    async generateContentFallback(pageData) {
+        console.log('🔄 폴백 모드 콘텐츠 생성');
+        
+        // 기존 createBlankPageForTyping 방식으로 폴백
+        const blankContent = this.app.previewManager.createBlankPageForTyping();
+        this.app.previewManager.iframe.srcdoc = blankContent;
+        
+        await this.sleep(500);
+        
+        const iframeDoc = await this.waitForIframeReady();
+        if (iframeDoc) {
+            const { menu, submenu } = pageData;
+            const contentData = this.contentDatabase[menu.id]?.[submenu.id];
+            
+            if (contentData) {
+                await this.updateTitleWithTyping(iframeDoc, contentData.title);
+                await this.updateSubtitleWithTyping(iframeDoc, contentData.subtitle);
+                await this.updateContentWithTyping(iframeDoc, contentData.content);
+                await this.updateFeaturesWithTyping(iframeDoc, contentData.features);
+            }
+        }
+        
+        console.log('✅ 폴백 모드 생성 완료');
     }
 }

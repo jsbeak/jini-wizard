@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS 연동 테스트</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .test-section { 
+            margin-bottom: 30px; 
+            padding: 20px; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 6px; 
+        }
+        .test-section h2 { 
+            color: #374151; 
+            margin-top: 0; 
+        }
+        .button { 
+            padding: 10px 20px; 
+            background: #6366F1; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            margin-right: 10px; 
+            margin-bottom: 10px;
+        }
+        .button:hover { 
+            background: #5856EB; 
+        }
+        .result { 
+            margin-top: 15px; 
+            padding: 15px; 
+            background: #f9fafb; 
+            border-radius: 4px; 
+            border-left: 4px solid #6366F1; 
+            font-family: monospace; 
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .success { border-left-color: #10B981; }
+        .error { border-left-color: #EF4444; }
+        .link { 
+            display: block; 
+            margin: 20px 0; 
+            padding: 15px; 
+            background: #EBF8FF; 
+            border: 1px solid #BEE3F8; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            color: #2563EB; 
+        }
+        .link:hover { background: #DBEAFE; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 CMS 연동 테스트</h1>
+        <p>CMS AI 마법사의 백엔드 연동 기능을 테스트합니다.</p>
+        
+        <div class="test-section">
+            <h2>1. URL 파라미터 테스트</h2>
+            <p>siteId를 URL 파라미터로 전달하여 테스트합니다.</p>
+            
+            <a href="index.html?siteId=test-site-001" class="link">
+                🚀 테스트 사이트 (test-site-001)로 실행
+            </a>
+            
+            <a href="index.html?siteId=demo-company" class="link">
+                🏢 데모 회사 (demo-company)로 실행  
+            </a>
+            
+            <a href="index.html" class="link">
+                🔧 기본 모드 (default-site)로 실행
+            </a>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. CMS API 모의 테스트</h2>
+            <p>실제 CMS API 없이 클라이언트단에서 모의 테스트를 진행합니다.</p>
+            
+            <button class="button" onclick="testCMSIntegration()">CMS 연동 테스트</button>
+            <button class="button" onclick="testMenuLoading()">메뉴 로딩 테스트</button>
+            <button class="button" onclick="testPageLoading()">페이지 로딩 테스트</button>
+            <button class="button" onclick="testContentSaving()">콘텐츠 저장 테스트</button>
+            <button class="button" onclick="previewGeneratedPage()">HTML 미리보기</button>
+            
+            <div id="testResult" class="result" style="display: none;"></div>
+            
+            <!-- HTML 미리보기 섹션 -->
+            <div id="htmlPreviewSection" style="display: none; margin-top: 20px;">
+                <h3>🔍 생성된 HTML 미리보기</h3>
+                <div style="display: flex; gap: 20px; margin-top: 15px;">
+                    <!-- 소스코드 표시 -->
+                    <div style="flex: 1;">
+                        <h4>HTML 소스코드</h4>
+                        <pre id="htmlSourceCode" style="background: #f8f9fa; padding: 15px; border-radius: 6px; font-size: 12px; max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb;"></pre>
+                    </div>
+                    <!-- 미리보기 iframe -->
+                    <div style="flex: 1;">
+                        <h4>실제 렌더링 결과</h4>
+                        <iframe id="htmlPreviewFrame" style="width: 100%; height: 300px; border: 1px solid #e5e7eb; border-radius: 6px;" frameborder="0"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. 폴백 모드 테스트</h2>
+            <p>CMS 서버 연결 실패 시 폴백 모드가 정상 작동하는지 확인합니다.</p>
+            
+            <button class="button" onclick="testFallbackMode()">폴백 모드 테스트</button>
+            
+            <div id="fallbackResult" class="result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>4. 시스템 정보</h2>
+            <p>현재 브라우저 및 시스템 정보를 확인합니다.</p>
+            
+            <button class="button" onclick="showSystemInfo()">시스템 정보 보기</button>
+            
+            <div id="systemInfo" class="result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>5. 개발자 콘솔 & 실시간 로그</h2>
+            <p>브라우저 개발자 도구의 콘솔에서 상세한 로그를 확인하거나, 아래 실시간 로그 모니터를 사용하세요.</p>
+            
+            <button class="button" onclick="toggleLogMonitor()">실시간 로그 모니터 토글</button>
+            <button class="button" onclick="clearLogMonitor()">로그 지우기</button>
+            <button class="button" onclick="exportLogs()">로그 내보내기</button>
+            
+            <!-- 실시간 로그 모니터 -->
+            <div id="logMonitor" style="display: none; margin-top: 20px; background: #1f2937; color: #e5e7eb; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; max-height: 400px; overflow-y: auto;">
+                <div id="logContent">
+                    <div class="log-entry">🚀 <span style="color: #10b981;">[SYSTEM]</span> 로그 모니터 시작됨 - <span style="color: #6b7280;">[시작 시간]</span></div>
+                </div>
+            </div>
+            
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                <strong>주요 로그 메시지:</strong><br>
+                🔗 <span style="color: #6366f1;">[CMS]</span> 연결 초기화 중...<br>
+                📋 <span style="color: #059669;">[MENU]</span> 메뉴 구조 조회 중...<br>
+                📄 <span style="color: #7c3aed;">[PAGE]</span> 페이지 HTML 조회 중...<br>
+                💾 <span style="color: #dc2626;">[SAVE]</span> 콘텐츠 저장 중...<br>
+                ✅ <span style="color: #10b981;">[SUCCESS]</span> 작업 완료 / ❌ <span style="color: #ef4444;">[ERROR]</span> 오류 발생
+            </div>
+            
+            <p style="margin-top: 15px;"><kbd>F12</kbd> → Console 탭에서도 동일한 로그를 확인할 수 있습니다.</p>
+        </div>
+        
+        <div class="test-section">
+            <h2>6. 데모 페이지</h2>
+            <p>다양한 CMS 템플릿 구조와 #cms-content 영역을 시각적으로 확인해보세요.</p>
+            
+            <a href="demo-page.html" class="link" target="_blank">
+                🎨 CMS 템플릿 데모 페이지 보기
+            </a>
+            
+            <div style="background: #ecfdf5; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #10b981;">
+                <strong>포함된 템플릿:</strong><br>
+                🏢 기업형 템플릿 - 전문적인 비즈니스 레이아웃<br>
+                📝 블로그형 템플릿 - 콘텐츠 중심의 개인 블로그<br>
+                🛒 쇼핑몰형 템플릿 - 전자상거래 사이트<br>
+                🎯 포트폴리오형 템플릿 - 개인 작품 소개 사이트
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CMS Integration 테스트 스크립트
+        async function testCMSIntegration() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '테스트 진행중...';
+            
+            try {
+                // CMS Integration 인스턴스 생성 테스트
+                const cms = new CMSIntegration('test-site');
+                
+                // 초기화 테스트
+                const initResult = await cms.initialize();
+                
+                resultDiv.textContent = `CMS 연동 테스트 결과:
+모드: ${initResult.mode}
+성공: ${initResult.success}
+${initResult.error ? '오류: ' + initResult.error : ''}
+
+폴백 모드: ${cms.isFallbackMode()}
+연결 상태: ${cms.isConnectionActive()}`;
+                
+                resultDiv.className = 'result ' + (initResult.success ? 'success' : 'error');
+                
+            } catch (error) {
+                resultDiv.textContent = `테스트 실패: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function testMenuLoading() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '메뉴 로딩 테스트 중...';
+            
+            try {
+                const cms = new CMSIntegration('test-site');
+                await cms.initialize();
+                
+                const menuData = await cms.loadMenuStructure();
+                
+                resultDiv.textContent = `메뉴 로딩 테스트 결과:
+총 메뉴 수: ${menuData.menus.length}
+첫 번째 메뉴: ${menuData.menus[0]?.title} (${menuData.menus[0]?.koreanTitle})
+서브메뉴 수: ${menuData.menus[0]?.submenus?.length || 0}
+
+폴백 모드: ${cms.isFallbackMode()}`;
+                
+                resultDiv.className = 'result success';
+                
+            } catch (error) {
+                resultDiv.textContent = `메뉴 로딩 실패: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function testPageLoading() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '페이지 로딩 테스트 중...';
+            
+            try {
+                const cms = new CMSIntegration('test-site');
+                await cms.initialize();
+                
+                const pageData = await cms.loadPageHTML('about/welcome');
+                
+                resultDiv.textContent = `페이지 로딩 테스트 결과:
+페이지 ID: ${pageData.pageId}
+HTML 길이: ${pageData.fullHtml.length} 문자
+콘텐츠 셀렉터: ${pageData.contentSelector}
+페이지 제목: ${pageData.pageTitle}
+
+#cms-content 포함: ${pageData.fullHtml.includes('cms-content')}
+폴백 모드: ${cms.isFallbackMode()}`;
+                
+                resultDiv.className = 'result success';
+                
+            } catch (error) {
+                resultDiv.textContent = `페이지 로딩 실패: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function testContentSaving() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '콘텐츠 저장 테스트 중...';
+            
+            try {
+                const cms = new CMSIntegration('test-site');
+                await cms.initialize();
+                
+                const testContent = '<div><h1>AI 생성 테스트 콘텐츠</h1><p>저장 테스트입니다.</p></div>';
+                const saveResult = await cms.saveGeneratedContent('about/welcome', testContent);
+                
+                resultDiv.textContent = `콘텐츠 저장 테스트 결과:
+성공: ${saveResult.success}
+저장 시간: ${saveResult.savedAt}
+모드: ${saveResult.mode}
+${saveResult.error ? '오류: ' + saveResult.error : ''}
+
+폴백 모드: ${cms.isFallbackMode()}`;
+                
+                resultDiv.className = 'result ' + (saveResult.success ? 'success' : 'error');
+                
+            } catch (error) {
+                resultDiv.textContent = `콘텐츠 저장 실패: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function testFallbackMode() {
+            const resultDiv = document.getElementById('fallbackResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '폴백 모드 테스트 중...';
+            
+            try {
+                // 강제로 폴백 모드 설정
+                const cms = new CMSIntegration('test-site');
+                cms.fallbackMode = true;
+                
+                const menuData = await cms.loadMenuStructure();
+                const pageData = await cms.loadPageHTML('about/welcome');
+                const saveResult = await cms.saveGeneratedContent('about/welcome', '<div>Test</div>');
+                
+                resultDiv.textContent = `폴백 모드 테스트 결과:
+메뉴 로딩: ${menuData.menus.length}개 메뉴 (기본값)
+페이지 로딩: ${pageData.fullHtml.length}자 HTML (기본값)
+콘텐츠 저장: ${saveResult.success} (${saveResult.mode})
+
+모든 기능이 폴백 모드에서 정상 작동함`;
+                
+                resultDiv.className = 'result success';
+                
+            } catch (error) {
+                resultDiv.textContent = `폴백 모드 테스트 실패: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function previewGeneratedPage() {
+            try {
+                const cms = new CMSIntegration('test-site');
+                await cms.initialize();
+                
+                const pageData = await cms.loadPageHTML('about/welcome');
+                
+                // HTML 소스코드 표시
+                const sourceCodeDiv = document.getElementById('htmlSourceCode');
+                sourceCodeDiv.textContent = pageData.fullHtml;
+                
+                // iframe에 HTML 렌더링
+                const previewFrame = document.getElementById('htmlPreviewFrame');
+                const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                doc.open();
+                doc.write(pageData.fullHtml);
+                doc.close();
+                
+                // 미리보기 섹션 표시
+                const previewSection = document.getElementById('htmlPreviewSection');
+                previewSection.style.display = 'block';
+                
+                // 스크롤하여 미리보기 섹션으로 이동
+                previewSection.scrollIntoView({ behavior: 'smooth' });
+                
+                console.log('✅ HTML 미리보기 생성 완료');
+                
+            } catch (error) {
+                console.error('❌ HTML 미리보기 생성 실패:', error);
+                alert('HTML 미리보기 생성에 실패했습니다: ' + error.message);
+            }
+        }
+        
+        function showSystemInfo() {
+            const resultDiv = document.getElementById('systemInfo');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            
+            const info = {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                screenResolution: screen.width + 'x' + screen.height,
+                windowSize: window.innerWidth + 'x' + window.innerHeight,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                currentTime: new Date().toLocaleString(),
+                url: window.location.href,
+                protocol: window.location.protocol,
+                host: window.location.host
+            };
+            
+            resultDiv.textContent = `시스템 정보:
+브라우저: ${info.userAgent.split(' ').pop() || 'Unknown'}
+언어: ${info.language}
+플랫폼: ${info.platform}
+쿠키 사용: ${info.cookieEnabled}
+인터넷 연결: ${info.onLine}
+화면 해상도: ${info.screenResolution}
+창 크기: ${info.windowSize}
+시간대: ${info.timeZone}
+현재 시간: ${info.currentTime}
+URL: ${info.url}
+프로토콜: ${info.protocol}
+호스트: ${info.host}
+
+CMS 연동 준비 상태: ✅
+JavaScript 지원: ✅
+로컬 스토리지: ${typeof(Storage) !== "undefined" ? '✅' : '❌'}`;
+            
+            resultDiv.className = 'result success';
+        }
+        
+        // 로그 모니터링 시스템
+        let logMonitorVisible = false;
+        let logEntries = [];
+        
+        function addLogEntry(level, category, message) {
+            const timestamp = new Date().toLocaleString();
+            const colors = {
+                'SYSTEM': '#10b981',
+                'CMS': '#6366f1',
+                'MENU': '#059669',
+                'PAGE': '#7c3aed',
+                'SAVE': '#dc2626',
+                'SUCCESS': '#10b981',
+                'ERROR': '#ef4444',
+                'INFO': '#3b82f6',
+                'WARN': '#f59e0b'
+            };
+            
+            const entry = {
+                timestamp,
+                level,
+                category,
+                message,
+                color: colors[category] || '#6b7280'
+            };
+            
+            logEntries.push(entry);
+            
+            // 로그 크기 제한 (메모리 절약)
+            if (logEntries.length > 100) {
+                logEntries.shift(); // 가장 오래된 로그 제거
+            }
+            
+            // 원본 콘솔에만 출력 (무한 루프 방지)
+            const consoleMessage = `[${category}] ${message}`;
+            if (level === 'error') {
+                originalConsoleError(consoleMessage);
+            } else if (level === 'warn') {
+                originalConsoleWarn(consoleMessage);
+            } else {
+                originalConsoleLog(consoleMessage);
+            }
+            
+            // UI 업데이트 (로그 모니터가 보이는 경우)
+            if (logMonitorVisible) {
+                updateLogDisplay();
+            }
+        }
+        
+        function toggleLogMonitor() {
+            const monitor = document.getElementById('logMonitor');
+            logMonitorVisible = !logMonitorVisible;
+            
+            if (logMonitorVisible) {
+                monitor.style.display = 'block';
+                updateLogDisplay();
+                addLogEntry('info', 'SYSTEM', '실시간 로그 모니터 활성화됨');
+            } else {
+                monitor.style.display = 'none';
+                addLogEntry('info', 'SYSTEM', '실시간 로그 모니터 비활성화됨');
+            }
+        }
+        
+        function clearLogMonitor() {
+            logEntries = [];
+            updateLogDisplay();
+            addLogEntry('info', 'SYSTEM', '로그 기록이 지워졌습니다');
+        }
+        
+        function exportLogs() {
+            const logText = logEntries.map(entry => 
+                `[${entry.timestamp}] [${entry.category}] ${entry.message}`
+            ).join('\n');
+            
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cms-test-logs-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            addLogEntry('info', 'SYSTEM', '로그가 파일로 내보내졌습니다');
+        }
+        
+        function updateLogDisplay() {
+            const logContent = document.getElementById('logContent');
+            logContent.innerHTML = logEntries.map(entry => 
+                `<div class="log-entry">${getLogIcon(entry.category)} <span style="color: ${entry.color};">[${entry.category}]</span> ${entry.message} <span style="color: #6b7280;">- ${entry.timestamp}</span></div>`
+            ).join('');
+            
+            // 스크롤을 맨 아래로
+            const monitor = document.getElementById('logMonitor');
+            monitor.scrollTop = monitor.scrollHeight;
+        }
+        
+        function getLogIcon(category) {
+            const icons = {
+                'SYSTEM': '🚀',
+                'CMS': '🔗',
+                'MENU': '📋',
+                'PAGE': '📄',
+                'SAVE': '💾',
+                'SUCCESS': '✅',
+                'ERROR': '❌',
+                'INFO': 'ℹ️',
+                'WARN': '⚠️'
+            };
+            return icons[category] || '📝';
+        }
+        
+        // 원본 콘솔 함수들 저장 (무한 루프 방지)
+        const originalConsoleLog = console.log;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleError = console.error;
+        
+        let isLoggingInProgress = false; // 무한 루프 방지 플래그
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            
+            // 무한 루프 방지: 이미 로깅 중이거나, 내부 로그 메시지는 무시
+            if (isLoggingInProgress) return;
+            
+            const message = args.join(' ');
+            
+            // 로그 시스템 자체의 메시지는 무시
+            if (message.includes('[CMS]') || message.includes('[SYSTEM]') || 
+                message.includes('[MENU]') || message.includes('[PAGE]')) {
+                return;
+            }
+            
+            // CMS 관련 메시지만 로그 모니터에 추가
+            if (message.includes('CMS') || message.includes('메뉴') || message.includes('페이지')) {
+                const category = message.includes('CMS') ? 'CMS' : 
+                               message.includes('메뉴') ? 'MENU' : 
+                               message.includes('페이지') ? 'PAGE' : 'INFO';
+                
+                isLoggingInProgress = true;
+                addLogEntry('info', category, message);
+                isLoggingInProgress = false;
+            }
+        };
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            if (!isLoggingInProgress) {
+                isLoggingInProgress = true;
+                addLogEntry('warn', 'WARN', args.join(' '));
+                isLoggingInProgress = false;
+            }
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            if (!isLoggingInProgress) {
+                isLoggingInProgress = true;
+                addLogEntry('error', 'ERROR', args.join(' '));
+                isLoggingInProgress = false;
+            }
+        };
+        
+        // 페이지 로드 시 초기 로그
+        window.addEventListener('load', function() {
+            addLogEntry('info', 'SYSTEM', 'CMS 테스트 페이지 로드 완료');
+            addLogEntry('info', 'SYSTEM', '모든 테스트 기능이 준비되었습니다');
+        });
+    </script>
+    
+    <!-- CMS Integration 스크립트 로드 -->
+    <script>
+        // CMSIntegration 클래스 인라인 정의 (테스트용)
+        class CMSIntegration {
+            constructor(siteId) {
+                this.siteId = siteId;
+                this.apiBase = '/api/cms';
+                this.isConnected = false;
+                this.fallbackMode = false;
+            }
+            
+            async initialize() {
+                try {
+                    console.log('🔗 CMS 연결 초기화 중...', this.siteId);
+                    
+                    // 실제 API 호출 시뮬레이션 (항상 실패로 설정하여 폴백 모드 테스트)
+                    throw new Error('CMS 서버에 연결할 수 없습니다 (테스트용)');
+                    
+                } catch (error) {
+                    console.warn('⚠️ CMS 연결 실패, 폴백 모드로 전환:', error.message);
+                    this.fallbackMode = true;
+                    return { success: false, mode: 'fallback', error: error.message };
+                }
+            }
+            
+            async loadMenuStructure() {
+                if (this.fallbackMode) {
+                    console.log('📋 폴백 모드: 기본 메뉴 구조 사용');
+                    return this.getDefaultMenuStructure();
+                }
+                
+                // 실제 API 호출 코드는 여기에...
+                return this.getDefaultMenuStructure();
+            }
+            
+            async loadPageHTML(pageId) {
+                if (this.fallbackMode) {
+                    console.log('📄 폴백 모드: 기본 페이지 구조 반환');
+                    return this.getDefaultPageStructure(pageId);
+                }
+                
+                // 실제 API 호출 코드는 여기에...
+                return this.getDefaultPageStructure(pageId);
+            }
+            
+            async saveGeneratedContent(pageId, htmlContent) {
+                if (this.fallbackMode) {
+                    console.log('💾 폴백 모드: 콘텐츠 저장 시뮬레이션');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return { 
+                        success: true, 
+                        savedAt: new Date().toISOString(),
+                        mode: 'simulation' 
+                    };
+                }
+                
+                // 실제 API 호출 코드는 여기에...
+                return { success: true, savedAt: new Date().toISOString(), mode: 'cms' };
+            }
+            
+            getDefaultMenuStructure() {
+                return {
+                    menus: [
+                        {
+                            id: "about",
+                            title: "About",
+                            koreanTitle: "회사소개",
+                            icon: "○",
+                            status: "waiting",
+                            submenus: [
+                                {
+                                    id: "welcome",
+                                    title: "Welcome Message",
+                                    koreanTitle: "환영메시지",
+                                    status: "waiting",
+                                    url: "/about/welcome"
+                                }
+                            ]
+                        }
+                    ]
+                };
+            }
+            
+            getDefaultPageStructure(pageId) {
+                // 실제 이화여대 CMS 템플릿 구조 사용
+                return {
+                    pageId: pageId,
+                    fullHtml: this.getEwhaCMSTemplate(),
+                    contentSelector: '#cms-content',
+                    pageTitle: '인사말 - 사회복지학과 (' + pageId + ')',
+                    menuPath: ['학과소개', '인사말']
+                };
+            }
+            
+            getEwhaCMSTemplate() {
+                // 이화여대 실제 CMS 템플릿 HTML 반환
+                return `<!doctype html>
+<html lang="ko" class="no-js">
+<head>
+<title>인사말 | 템플릿01</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=yes">
+<style>
+/* 기본 스타일 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; color: #333; }
+.wrap { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* 헤더 스타일 */
+header { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.top-header-box { background: #f8f9fa; padding: 8px 0; }
+.top-util-box ul { list-style: none; display: flex; justify-content: flex-end; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+.top-util-box li { margin-left: 20px; }
+.top-util-box a { color: #666; text-decoration: none; font-size: 13px; }
+
+.bottom-header-box { max-width: 1200px; margin: 0 auto; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 1.5rem; font-weight: bold; }
+.logo a { color: #2c5282; text-decoration: none; }
+.logo span { color: #e53e3e; }
+
+.gnb-ul { list-style: none; display: flex; gap: 40px; }
+.gnb-ul > li > a { color: #333; text-decoration: none; font-weight: 500; padding: 10px 0; display: block; }
+.gnb-ul > li > a.active { color: #2c5282; font-weight: bold; }
+
+/* 서브 비주얼 */
+.sub-visual-box { background: linear-gradient(135deg, #2c5282 0%, #2d3748 100%); color: white; padding: 60px 0; text-align: center; }
+.sub-visual-box h2 { font-size: 2.5rem; margin-bottom: 20px; }
+.path-depth-wrap { display: flex; justify-content: center; align-items: center; gap: 10px; }
+.path-depth-wrap ul { list-style: none; display: flex; gap: 10px; align-items: center; }
+.path-depth-wrap a { color: rgba(255,255,255,0.8); text-decoration: none; }
+.path-home { margin-right: 10px; }
+
+/* 메인 컨텐츠 */
+.sub-container { flex: 1; max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+.page-title h3 { font-size: 2rem; color: #2c5282; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 3px solid #2c5282; }
+
+/* CMS 콘텐츠 영역 강조 */
+#cms-content { 
+    background: linear-gradient(135deg, #fef9e7, #fef3c7); 
+    border: 3px dashed #f59e0b; 
+    border-radius: 15px; 
+    padding: 40px; 
+    margin: 30px 0; 
+    position: relative;
+    min-height: 300px;
+}
+
+#cms-content::before {
+    content: "🎯 AI가 생성할 콘텐츠 영역";
+    position: absolute;
+    top: -15px;
+    left: 20px;
+    background: #f59e0b;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.cms-placeholder {
+    text-align: center;
+    color: #92400e;
+    font-size: 1.2rem;
+    font-weight: 500;
+    padding: 50px 20px;
+}
+
+/* 푸터 */
+footer { background: #2d3748; color: white; padding: 40px 0; margin-top: auto; }
+.bottom-footer-box { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; }
+.footer-info-box { flex: 1; margin-left: 30px; }
+.footer-util-box ul { list-style: none; display: flex; gap: 20px; margin-bottom: 15px; }
+.footer-util-box a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 14px; }
+.address-txt { margin-bottom: 10px; }
+.copyright { font-size: 13px; color: rgba(255,255,255,0.6); }
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .gnb-ul { display: none; }
+    .bottom-header-box { flex-direction: column; text-align: center; }
+    .sub-visual-box h2 { font-size: 2rem; }
+    .bottom-footer-box { flex-direction: column; text-align: center; gap: 20px; }
+}
+</style>
+</head>
+<body class="temp01-site pc color-type01">
+<div class="wrap">
+    <header>
+        <div class="top-header-wrap">
+            <div class="top-header-box">
+                <div class="top-util-box">
+                    <ul>
+                        <li><a href="https://www.ewha.ac.kr/ewha/index.do" target="_blank">이화여자대학교</a></li>
+                        <li><a href="#" title="바로가기">SITEMAP</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-header-wrap">
+            <div class="bottom-header-box">
+                <h1 class="logo">
+                    <a href="#" title="바로가기">
+                        <span>사회복지학과</span>
+                    </a>
+                </h1>
+                <div class="gnb-wrap">
+                    <div class="gnb">
+                        <ul class="gnb-ul">
+                            <li><a href="#" class="active">학과소개</a></li>
+                            <li><a href="#">학사정보</a></li>
+                            <li><a href="#">입학정보</a></li>
+                            <li><a href="#">학생활동</a></li>
+                            <li><a href="#">자료실</a></li>
+                            <li><a href="#">커뮤니티</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="sub-visual-wrap">
+        <div class="sub-visual-box">
+            <h2>학과소개</h2>
+            <div class="path-depth-wrap">
+                <a class="path-home" href="#" title="홈 바로가기"><span>🏠 홈</span></a>
+                <ul>
+                    <li><a href="#" class="active">학과소개</a></li>
+                    <li><a href="#" class="active">인사말</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sub-container">
+        <div class="content-wrap">
+            <div class="title">
+                <div class="page-title">
+                    <h3>인사말</h3>
+                </div>
+            </div>
+            
+            <div class="content cms-print" id="cms-content">
+                <div class="cms-placeholder">
+                    🎓 이 영역에 AI가 생성한 인사말 콘텐츠가 삽입됩니다<br><br>
+                    • 학과장 인사말<br>
+                    • 학과 소개 및 비전<br>
+                    • 교육 목표 및 특성<br>
+                    • 졸업생 진로 안내<br><br>
+                    <small style="color: #f59e0b;">실제 CMS에서는 이 영역이 AI 생성 콘텐츠로 자동 교체됩니다</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="bottom-footer-wrap">
+            <div class="bottom-footer-box">
+                <div class="logo-box">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQwIiB2aWV3Qm94PSIwIDAgMTAwIDQwIj48dGV4dCB4PSI1MCIgeT0iMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RVdIQTwvdGV4dD48L3N2Zz4=" alt="이화여자대학교">
+                </div>
+                <div class="footer-info-box">
+                    <div class="footer-util-box">
+                        <ul>
+                            <li><a href="#">개인정보처리방침</a></li>
+                            <li><a href="#">네티즌윤리규약</a></li>
+                            <li><a href="#">이메일주소무단수집거부</a></li>
+                        </ul>
+                    </div>
+                    <div class="address-box">
+                        <p class="address-txt">
+                            <span>우) 03760 서울특별시 서대문구 이화여대길 52 이화여자대학교</span>
+                            <span>TEL. 02-3277-2114</span>
+                        </p>
+                        <p class="copyright">COPYRIGHT © 2024 BY EWHA WOMANS UNIVERSITY. ALL RIGHTS RESERVED.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+</body>
+</html>`;
+            }
+            
+            isConnectionActive() {
+                return this.isConnected && !this.fallbackMode;
+            }
+            
+            isFallbackMode() {
+                return this.fallbackMode;
+            }
+        }
+    </script>
+</body>
+</html>

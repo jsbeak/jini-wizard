@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS 템플릿 데모 페이지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8fafc;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .demo-header h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .demo-header p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .template-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .template-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+        
+        .template-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .template-header h3 {
+            margin-bottom: 5px;
+            font-size: 1.3rem;
+        }
+        
+        .template-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .template-preview {
+            position: relative;
+            height: 300px;
+            overflow: hidden;
+        }
+        
+        .template-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            transform: scale(0.8);
+            transform-origin: top left;
+        }
+        
+        .template-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .template-card:hover .template-overlay {
+            opacity: 1;
+        }
+        
+        .preview-btn {
+            padding: 12px 24px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .preview-btn:hover {
+            background: #5856eb;
+        }
+        
+        .template-info {
+            padding: 20px;
+        }
+        
+        .template-features {
+            list-style: none;
+            margin-bottom: 15px;
+        }
+        
+        .template-features li {
+            padding: 5px 0;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .template-features li:before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .cms-highlight {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 3px 6px;
+            font-weight: 500;
+            color: #92400e;
+        }
+        
+        .demo-footer {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .demo-footer h2 {
+            color: #1f2937;
+            margin-bottom: 15px;
+        }
+        
+        .demo-footer p {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+        
+        .demo-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .demo-link {
+            padding: 12px 24px;
+            background: #6366f1;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        
+        .demo-link:hover {
+            background: #5856eb;
+        }
+        
+        .demo-link.secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .demo-link.secondary:hover {
+            background: #d1d5db;
+        }
+        
+        @media (max-width: 768px) {
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .demo-header h1 {
+                font-size: 2rem;
+            }
+            
+            .demo-links {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <header class="demo-header">
+            <h1>🎨 CMS 템플릿 데모</h1>
+            <p>다양한 CMS 템플릿 구조와 <span class="cms-highlight">#cms-content</span> 영역을 확인해보세요</p>
+        </header>
+        
+        <div class="template-grid">
+            <!-- 기업형 템플릿 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <h3>🏢 기업형 템플릿</h3>
+                    <p>전문적인 기업 웹사이트 레이아웃</p>
+                </div>
+                <div class="template-preview">
+                    <iframe src="about:blank" id="corporate-template"></iframe>
+                    <div class="template-overlay">
+                        <button class="preview-btn" onclick="loadTemplate('corporate')">미리보기</button>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <ul class="template-features">
+                        <li>상단 네비게이션 메뉴</li>
+                        <li>히어로 섹션</li>
+                        <li>서비스 소개 영역</li>
+                        <li>하단 푸터</li>
+                    </ul>
+                    <p><strong>CMS 콘텐츠 영역:</strong> <span class="cms-highlight">#cms-content</span></p>
+                </div>
+            </div>
+            
+            <!-- 블로그형 템플릿 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <h3>📝 블로그형 템플릿</h3>
+                    <p>개인 블로그 및 콘텐츠 중심 레이아웃</p>
+                </div>
+                <div class="template-preview">
+                    <iframe src="about:blank" id="blog-template"></iframe>
+                    <div class="template-overlay">
+                        <button class="preview-btn" onclick="loadTemplate('blog')">미리보기</button>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <ul class="template-features">
+                        <li>사이드바 네비게이션</li>
+                        <li>포스트 목록</li>
+                        <li>카테고리 메뉴</li>
+                        <li>태그 클라우드</li>
+                    </ul>
+                    <p><strong>CMS 콘텐츠 영역:</strong> <span class="cms-highlight">#cms-content</span></p>
+                </div>
+            </div>
+            
+            <!-- 쇼핑몰형 템플릿 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <h3>🛒 쇼핑몰형 템플릿</h3>
+                    <p>전자상거래 및 제품 판매 레이아웃</p>
+                </div>
+                <div class="template-preview">
+                    <iframe src="about:blank" id="ecommerce-template"></iframe>
+                    <div class="template-overlay">
+                        <button class="preview-btn" onclick="loadTemplate('ecommerce')">미리보기</button>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <ul class="template-features">
+                        <li>제품 카테고리 메뉴</li>
+                        <li>검색 및 필터</li>
+                        <li>장바구니 기능</li>
+                        <li>사용자 계정 영역</li>
+                    </ul>
+                    <p><strong>CMS 콘텐츠 영역:</strong> <span class="cms-highlight">#cms-content</span></p>
+                </div>
+            </div>
+            
+            <!-- 포트폴리오형 템플릿 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <h3>🎯 포트폴리오형 템플릿</h3>
+                    <p>개인 작품 및 프로젝트 소개 레이아웃</p>
+                </div>
+                <div class="template-preview">
+                    <iframe src="about:blank" id="portfolio-template"></iframe>
+                    <div class="template-overlay">
+                        <button class="preview-btn" onclick="loadTemplate('portfolio')">미리보기</button>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <ul class="template-features">
+                        <li>미니멀 네비게이션</li>
+                        <li>작품 갤러리</li>
+                        <li>프로젝트 상세</li>
+                        <li>연락처 정보</li>
+                    </ul>
+                    <p><strong>CMS 콘텐츠 영역:</strong> <span class="cms-highlight">#cms-content</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="demo-footer">
+            <h2>🧪 실제 테스트해보기</h2>
+            <p>CMS AI 마법사로 이러한 템플릿들에 실제 콘텐츠를 생성해보세요</p>
+            <div class="demo-links">
+                <a href="index.html?siteId=corporate-demo" class="demo-link">기업형 사이트 생성</a>
+                <a href="index.html?siteId=blog-demo" class="demo-link">블로그 사이트 생성</a>
+                <a href="index.html?siteId=ecommerce-demo" class="demo-link">쇼핑몰 사이트 생성</a>
+                <a href="test-cms.html" class="demo-link secondary">테스트 페이지로 돌아가기</a>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // 템플릿 HTML 생성 함수들
+        function createCorporateTemplate() {
+            return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>ABC 기업 - 홈</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Segoe UI', sans-serif; line-height: 1.6; }
+                    header { background: #1f2937; color: white; padding: 1rem 0; }
+                    nav { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+                    .logo { font-size: 1.5rem; font-weight: bold; }
+                    .nav-menu { display: flex; list-style: none; gap: 2rem; }
+                    .nav-menu a { color: white; text-decoration: none; }
+                    .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4rem 0; text-align: center; }
+                    .hero h1 { font-size: 3rem; margin-bottom: 1rem; }
+                    .hero p { font-size: 1.2rem; opacity: 0.9; }
+                    #cms-content { min-height: 400px; background: #fef9e7; border: 3px dashed #f59e0b; margin: 2rem auto; max-width: 1200px; padding: 2rem; text-align: center; }
+                    .cms-placeholder { color: #92400e; font-size: 1.2rem; font-weight: 500; }
+                    footer { background: #374151; color: white; padding: 2rem 0; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <header>
+                    <nav>
+                        <div class="logo">ABC 기업</div>
+                        <ul class="nav-menu">
+                            <li><a href="#home">홈</a></li>
+                            <li><a href="#about">회사소개</a></li>
+                            <li><a href="#services">서비스</a></li>
+                            <li><a href="#contact">연락처</a></li>
+                        </ul>
+                    </nav>
+                </header>
+                
+                <section class="hero">
+                    <h1>혁신적인 솔루션으로 미래를 만듭니다</h1>
+                    <p>전문성과 신뢰를 바탕으로 고객의 성공을 지원합니다</p>
+                </section>
+                
+                <main id="cms-content">
+                    <div class="cms-placeholder">
+                        🎯 이 영역에 AI가 생성한 콘텐츠가 삽입됩니다<br>
+                        (회사 소개, 서비스 설명, 팀 정보 등)
+                    </div>
+                </main>
+                
+                <footer>
+                    <p>&copy; 2024 ABC 기업. All rights reserved.</p>
+                </footer>
+            </body>
+            </html>
+            `;
+        }
+        
+        function createBlogTemplate() {
+            return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>개발자 블로그</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; }
+                    .container { display: flex; max-width: 1200px; margin: 0 auto; min-height: 100vh; }
+                    .sidebar { width: 250px; background: white; padding: 2rem; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+                    .sidebar h2 { color: #1f2937; margin-bottom: 1rem; }
+                    .sidebar ul { list-style: none; }
+                    .sidebar li { padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb; }
+                    .sidebar a { color: #6b7280; text-decoration: none; }
+                    .main-content { flex: 1; padding: 2rem; }
+                    .blog-header { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                    .blog-header h1 { color: #1f2937; margin-bottom: 0.5rem; }
+                    .blog-header p { color: #6b7280; }
+                    #cms-content { background: #fef9e7; border: 3px dashed #f59e0b; border-radius: 12px; padding: 2rem; text-align: center; min-height: 400px; }
+                    .cms-placeholder { color: #92400e; font-size: 1.2rem; font-weight: 500; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <aside class="sidebar">
+                        <h2>📝 카테고리</h2>
+                        <ul>
+                            <li><a href="#tech">기술</a></li>
+                            <li><a href="#tutorial">튜토리얼</a></li>
+                            <li><a href="#review">리뷰</a></li>
+                            <li><a href="#life">일상</a></li>
+                        </ul>
+                        
+                        <h2 style="margin-top: 2rem;">🏷️ 태그</h2>
+                        <ul>
+                            <li><a href="#javascript">JavaScript</a></li>
+                            <li><a href="#react">React</a></li>
+                            <li><a href="#nodejs">Node.js</a></li>
+                            <li><a href="#css">CSS</a></li>
+                        </ul>
+                    </aside>
+                    
+                    <main class="main-content">
+                        <header class="blog-header">
+                            <h1>개발자 블로그</h1>
+                            <p>기술과 경험을 공유하는 공간</p>
+                        </header>
+                        
+                        <div id="cms-content">
+                            <div class="cms-placeholder">
+                                📝 이 영역에 AI가 생성한 콘텐츠가 삽입됩니다<br>
+                                (블로그 포스트, 기술 글, 튜토리얼 등)
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </body>
+            </html>
+            `;
+        }
+        
+        function createEcommerceTemplate() {
+            return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>온라인 쇼핑몰</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Segoe UI', sans-serif; }
+                    header { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 1rem 0; }
+                    .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+                    .logo { font-size: 1.8rem; font-weight: bold; color: #6366f1; }
+                    .search-bar { flex: 1; max-width: 400px; margin: 0 2rem; }
+                    .search-bar input { width: 100%; padding: 0.8rem; border: 2px solid #e5e7eb; border-radius: 8px; }
+                    .user-actions { display: flex; gap: 1rem; align-items: center; }
+                    .cart-icon { background: #6366f1; color: white; padding: 0.8rem; border-radius: 8px; }
+                    nav { background: #f8fafc; padding: 1rem 0; }
+                    .nav-categories { max-width: 1200px; margin: 0 auto; display: flex; gap: 2rem; padding: 0 20px; }
+                    .nav-categories a { color: #374151; text-decoration: none; font-weight: 500; }
+                    #cms-content { min-height: 500px; background: #fef9e7; border: 3px dashed #f59e0b; margin: 2rem auto; max-width: 1200px; padding: 2rem; text-align: center; }
+                    .cms-placeholder { color: #92400e; font-size: 1.2rem; font-weight: 500; }
+                    footer { background: #1f2937; color: white; padding: 3rem 0; text-align: center; margin-top: 2rem; }
+                </style>
+            </head>
+            <body>
+                <header>
+                    <div class="header-content">
+                        <div class="logo">🛒 ShopMall</div>
+                        <div class="search-bar">
+                            <input type="text" placeholder="상품을 검색하세요...">
+                        </div>
+                        <div class="user-actions">
+                            <span>로그인</span>
+                            <div class="cart-icon">🛒 0</div>
+                        </div>
+                    </div>
+                </header>
+                
+                <nav>
+                    <div class="nav-categories">
+                        <a href="#electronics">전자제품</a>
+                        <a href="#fashion">패션</a>
+                        <a href="#home">홈&리빙</a>
+                        <a href="#beauty">뷰티</a>
+                        <a href="#sports">스포츠</a>
+                        <a href="#books">도서</a>
+                    </div>
+                </nav>
+                
+                <main id="cms-content">
+                    <div class="cms-placeholder">
+                        🛍️ 이 영역에 AI가 생성한 콘텐츠가 삽입됩니다<br>
+                        (상품 목록, 카테고리별 상품, 특가 상품, 추천 상품 등)
+                    </div>
+                </main>
+                
+                <footer>
+                    <p>&copy; 2024 ShopMall. 안전한 온라인 쇼핑의 시작</p>
+                </footer>
+            </body>
+            </html>
+            `;
+        }
+        
+        function createPortfolioTemplate() {
+            return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>김개발 포트폴리오</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; }
+                    header { position: fixed; top: 0; width: 100%; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); z-index: 1000; padding: 1rem 0; }
+                    nav { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+                    .logo { font-size: 1.5rem; font-weight: bold; }
+                    .nav-links { display: flex; gap: 2rem; list-style: none; }
+                    .nav-links a { color: white; text-decoration: none; transition: color 0.3s; }
+                    .nav-links a:hover { color: #6366f1; }
+                    .hero { padding: 8rem 0 4rem; text-align: center; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+                    .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                    .hero p { font-size: 1.3rem; color: #94a3b8; margin-bottom: 2rem; }
+                    .hero-buttons { display: flex; gap: 1rem; justify-content: center; }
+                    .btn { padding: 1rem 2rem; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
+                    .btn-primary { background: #6366f1; color: white; }
+                    .btn-secondary { background: transparent; color: #6366f1; border: 2px solid #6366f1; }
+                    #cms-content { min-height: 600px; background: linear-gradient(135deg, #fef9e7, #fef3c7); border: 3px dashed #f59e0b; margin: 4rem auto; max-width: 1200px; padding: 3rem; text-align: center; border-radius: 20px; }
+                    .cms-placeholder { color: #92400e; font-size: 1.3rem; font-weight: 500; }
+                    footer { background: #1e293b; padding: 3rem 0; text-align: center; border-top: 1px solid #334155; }
+                </style>
+            </head>
+            <body>
+                <header>
+                    <nav>
+                        <div class="logo">김개발</div>
+                        <ul class="nav-links">
+                            <li><a href="#home">홈</a></li>
+                            <li><a href="#about">소개</a></li>
+                            <li><a href="#portfolio">포트폴리오</a></li>
+                            <li><a href="#skills">기술</a></li>
+                            <li><a href="#contact">연락처</a></li>
+                        </ul>
+                    </nav>
+                </header>
+                
+                <section class="hero">
+                    <h1>풀스택 개발자</h1>
+                    <p>창의적인 아이디어를 현실로 만드는 개발자</p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary">프로젝트 보기</button>
+                        <button class="btn btn-secondary">연락하기</button>
+                    </div>
+                </section>
+                
+                <main id="cms-content">
+                    <div class="cms-placeholder">
+                        🎨 이 영역에 AI가 생성한 콘텐츠가 삽입됩니다<br>
+                        (프로젝트 갤러리, 기술 스택, 경력 소개, 연락처 정보 등)
+                    </div>
+                </main>
+                
+                <footer>
+                    <p>&copy; 2024 김개발. 모든 프로젝트는 열정으로 만들어집니다.</p>
+                </footer>
+            </body>
+            </html>
+            `;
+        }
+        
+        // 템플릿 로드 함수
+        function loadTemplate(type) {
+            let html = '';
+            let frameId = '';
+            
+            switch(type) {
+                case 'corporate':
+                    html = createCorporateTemplate();
+                    frameId = 'corporate-template';
+                    break;
+                case 'blog':
+                    html = createBlogTemplate();
+                    frameId = 'blog-template';
+                    break;
+                case 'ecommerce':
+                    html = createEcommerceTemplate();
+                    frameId = 'ecommerce-template';
+                    break;
+                case 'portfolio':
+                    html = createPortfolioTemplate();
+                    frameId = 'portfolio-template';
+                    break;
+            }
+            
+            const iframe = document.getElementById(frameId);
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(html);
+            doc.close();
+            
+            console.log(`✅ ${type} 템플릿 로드 완료`);
+        }
+        
+        // 페이지 로드 시 모든 템플릿 미리 로드
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                loadTemplate('corporate');
+                loadTemplate('blog');
+                loadTemplate('ecommerce');
+                loadTemplate('portfolio');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
