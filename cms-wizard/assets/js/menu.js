@@ -111,11 +111,13 @@ class MenuManager {
                 menu.status = 'completed';
             } else if (menu.submenus.some(s => s.status === 'processing')) {
                 menu.status = 'processing';
+            } else {
+                menu.status = 'waiting';
             }
         }
         
-        // Update UI
-        this.updateMenuItemStatus(menuId, status);
+        // Update UI - but don't animate parent menu
+        this.updateMenuItemStatus(menuId, menu.status, false); // false = no animation for parent
         this.updateSubmenuItemStatus(menuId, submenuId, status);
         
         // Auto-expand menu if processing
@@ -130,7 +132,7 @@ class MenuManager {
         }
     }
     
-    updateMenuItemStatus(menuId, status) {
+    updateMenuItemStatus(menuId, status, allowAnimation = true) {
         const menuItem = this.menuList.querySelector(`[data-menu-id="${menuId}"]`);
         if (menuItem) {
             const menu = this.menuData.menus.find(m => m.id === menuId);
@@ -139,14 +141,20 @@ class MenuManager {
             const icon = menuItem.querySelector('.menu-icon');
             icon.textContent = this.getStatusIcon(menu.status);
             
-            // Add animation for status change
-            if (menu.status === 'completed') {
-                menuItem.classList.remove('pulse'); // Remove pulse animation
-                this.animateCompletion(icon);
-            } else if (menu.status === 'processing') {
-                menuItem.classList.add('pulse');
+            // Only add animation if explicitly allowed and not during processing
+            if (allowAnimation) {
+                if (menu.status === 'completed') {
+                    menuItem.classList.remove('pulse'); // Remove pulse animation
+                    this.animateCompletion(icon);
+                } else if (menu.status === 'processing') {
+                    // Don't add pulse to parent menu when child is processing
+                    menuItem.classList.remove('pulse');
+                } else {
+                    menuItem.classList.remove('pulse'); // Clean up pulse animation
+                }
             } else {
-                menuItem.classList.remove('pulse'); // Clean up pulse animation
+                // Just update status without animation
+                menuItem.classList.remove('pulse');
             }
         }
     }

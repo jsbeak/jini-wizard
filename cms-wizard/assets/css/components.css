@@ -504,45 +504,6 @@
     border-radius: var(--radius-md);
 }
 
-/* Multiple Progress Bars */
-.multi-progress {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: var(--space-sm);
-}
-
-.multi-progress-bar {
-    height: 4px;
-    background-color: var(--bg-tertiary);
-    border-radius: var(--radius-full);
-    overflow: hidden;
-    position: relative;
-}
-
-.multi-progress-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    background: linear-gradient(90deg, var(--primary-blue), var(--primary-dark));
-    transform-origin: left;
-    animation: multiBarFlow 2s ease-in-out infinite;
-}
-
-.multi-progress-bar:nth-child(1) .multi-progress-fill {
-    animation-delay: 0s;
-}
-
-.multi-progress-bar:nth-child(2) .multi-progress-fill {
-    animation-delay: 0.2s;
-}
-
-.multi-progress-bar:nth-child(3) .multi-progress-fill {
-    animation-delay: 0.4s;
-}
-
 /* Loading Message */
 .loading-message {
     text-align: center;

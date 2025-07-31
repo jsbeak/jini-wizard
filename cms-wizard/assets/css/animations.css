@@ -364,22 +364,6 @@
     }
 }
 
-/* Multiple Progress Bars Animation */
-@keyframes multiBarFlow {
-    0% {
-        transform: scaleX(0) translateX(0);
-    }
-    40% {
-        transform: scaleX(1) translateX(0);
-    }
-    60% {
-        transform: scaleX(1) translateX(0);
-    }
-    100% {
-        transform: scaleX(0) translateX(100%);
-    }
-}
-
 /* Utility Animation Classes */
 .animate-fadeIn {
     animation: fadeIn var(--transition-base) ease;

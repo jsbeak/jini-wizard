@@ -381,13 +381,16 @@ class AISimulator {
         
         console.log('🚀 Starting AI content generation for:', `${menu.id}/${submenu.id}`);
         
+        // Update page layout (GNB, LNB, breadcrumb, page title)
+        await this.updatePageLayout(iframeDoc, pageData);
+        
         // Show AI thinking process with detailed steps
         await this.showAIProcess(iframeDoc);
         
         // Simulate initial AI processing delay
         await this.sleep(800);
         
-        // Update page title with realistic typing effect
+        // Update main content title with realistic typing effect
         await this.updateTitleWithTyping(iframeDoc, contentData.title);
         
         // Update subtitle with typing effect
@@ -426,6 +429,144 @@ class AISimulator {
         }
         
         return null;
+    }
+    
+    // Update page layout elements (GNB, LNB, breadcrumb, page title)
+    async updatePageLayout(doc, pageData) {
+        const { menu, submenu } = pageData;
+        
+        console.log('🎨 Updating page layout for:', menu.title, '>', submenu.title);
+        
+        // Update GNB active state
+        const gnbMenus = doc.querySelectorAll('.gnb-menu a');
+        gnbMenus.forEach(link => {
+            link.classList.remove('active');
+            if (link.textContent.includes(this.getMenuKoreanName(menu.id))) {
+                link.classList.add('active');
+            }
+        });
+        
+        // Update LNB title and menu
+        const lnbTitle = doc.querySelector('.lnb-title');
+        const lnbMenu = doc.querySelector('.lnb-menu');
+        
+        if (lnbTitle) {
+            lnbTitle.textContent = this.getMenuKoreanName(menu.id);
+        }
+        
+        if (lnbMenu) {
+            // Get all submenus for current menu
+            const menuData = this.getMenuData(menu.id);
+            if (menuData) {
+                lnbMenu.innerHTML = menuData.submenus.map(sub => `
+                    <li>
+                        <a href="#" ${sub.id === submenu.id ? 'class="active"' : ''}>
+                            ${sub.koreanTitle || sub.title}
+                        </a>
+                    </li>
+                `).join('');
+            }
+        }
+        
+        // Update breadcrumb
+        const breadcrumbCurrent = doc.querySelector('#breadcrumb-current');
+        if (breadcrumbCurrent) {
+            breadcrumbCurrent.textContent = submenu.title;
+        }
+        
+        // Update page title
+        const pageTitle = doc.querySelector('#page-title-text');
+        if (pageTitle) {
+            pageTitle.textContent = submenu.title;
+        }
+        
+        await this.sleep(200); // Brief pause for layout update
+    }
+    
+    // Get Korean menu name
+    getMenuKoreanName(menuId) {
+        const menuNames = {
+            'about': '회사소개',
+            'research': '연구개발',
+            'services': '서비스',
+            'team': '팀 소개',
+            'portfolio': '포트폴리오',
+            'resources': '자료실',
+            'news': '뉴스',
+            'contact': '문의하기'
+        };
+        return menuNames[menuId] || menuId;
+    }
+    
+    // Get menu data with Korean titles
+    getMenuData(menuId) {
+        const menuStructures = {
+            'about': {
+                submenus: [
+                    { id: 'welcome', title: 'Welcome Message', koreanTitle: '환영 메시지' },
+                    { id: 'company', title: 'Company Overview', koreanTitle: '회사 개요' },
+                    { id: 'mission', title: 'Mission & Vision', koreanTitle: '미션 & 비전' },
+                    { id: 'history', title: 'History', koreanTitle: '연혁' },
+                    { id: 'organization', title: 'Organization', koreanTitle: '조직도' },
+                    { id: 'awards', title: 'Awards', koreanTitle: '인증 & 수상' }
+                ]
+            },
+            'research': {
+                submenus: [
+                    { id: 'areas', title: 'Research Areas', koreanTitle: '연구 분야' },
+                    { id: 'projects', title: 'Current Projects', koreanTitle: '진행 프로젝트' },
+                    { id: 'publications', title: 'Publications', koreanTitle: '연구 성과' },
+                    { id: 'labs', title: 'Research Labs', koreanTitle: '연구소' },
+                    { id: 'collaboration', title: 'Collaboration', koreanTitle: '산학협력' }
+                ]
+            },
+            'services': {
+                submenus: [
+                    { id: 'consulting', title: 'Consulting Services', koreanTitle: '컨설팅 서비스' },
+                    { id: 'development', title: 'Development Services', koreanTitle: '개발 서비스' },
+                    { id: 'support', title: 'Support Services', koreanTitle: '지원 서비스' },
+                    { id: 'training', title: 'Training', koreanTitle: '교육 서비스' }
+                ]
+            },
+            'team': {
+                submenus: [
+                    { id: 'leadership', title: 'Our Leadership', koreanTitle: '경영진' },
+                    { id: 'researchers', title: 'Research Team', koreanTitle: '연구진' },
+                    { id: 'careers', title: 'Join Our Team', koreanTitle: '채용 정보' },
+                    { id: 'culture', title: 'Company Culture', koreanTitle: '기업 문화' }
+                ]
+            },
+            'portfolio': {
+                submenus: [
+                    { id: 'case-studies', title: 'Case Studies', koreanTitle: '프로젝트 사례' },
+                    { id: 'clients', title: 'Our Clients', koreanTitle: '고객사' },
+                    { id: 'testimonials', title: 'Client Testimonials', koreanTitle: '고객 후기' }
+                ]
+            },
+            'resources': {
+                submenus: [
+                    { id: 'blog', title: 'Blog & Articles', koreanTitle: '블로그' },
+                    { id: 'whitepapers', title: 'Whitepapers', koreanTitle: '백서' },
+                    { id: 'tools', title: 'Tools & Downloads', koreanTitle: '도구 & 다운로드' }
+                ]
+            },
+            'news': {
+                submenus: [
+                    { id: 'latest', title: 'Latest News', koreanTitle: '최신 소식' },
+                    { id: 'events', title: 'Upcoming Events', koreanTitle: '이벤트' },
+                    { id: 'press', title: 'Press Releases', koreanTitle: '보도자료' }
+                ]
+            },
+            'contact': {
+                submenus: [
+                    { id: 'info', title: 'Contact Information', koreanTitle: '연락처' },
+                    { id: 'location', title: 'Our Location', koreanTitle: '오시는 길' },
+                    { id: 'support', title: 'Get Support', koreanTitle: '기술 지원' }
+                ]
+            }
+        };
+        
+        return menuStructures[menuId];
     }
     
     // Show final completion message
