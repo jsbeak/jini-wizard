@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>콘텐츠 저장 및 리뷰 테스트 - 이화여자대학교</title>
+    
+    <!-- 메인 앱과 동일한 JavaScript 의존성 추가 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/motion@10.16.2/dist/motion.min.js"></script>
+    <script src="assets/js/performance-utils.js"></script>
+    <script src="assets/js/content-storage.js"></script>
+    <script src="assets/js/jsp-content-storage.js"></script>
+    <script src="assets/js/api-interface.js"></script>
+    <script src="assets/js/cms-integration.js"></script>
+    <script src="assets/js/ai-simulator.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #f9fafb;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        h1, h2 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .card h3 {
+            font-size: 1rem;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card p {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0.25rem 0;
+        }
+        
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #5b46f1;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-success {
+            background: #10b981;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0.25rem;
+        }
+        
+        .status.waiting {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status.processing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status.completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            padding: 1rem;
+            border-radius: 6px;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        
+        .log-entry {
+            margin: 0.25rem 0;
+            padding: 0.25rem;
+            border-left: 2px solid transparent;
+        }
+        
+        .log-entry.info {
+            color: #60a5fa;
+            border-left-color: #60a5fa;
+        }
+        
+        .log-entry.success {
+            color: #10b981;
+            border-left-color: #10b981;
+        }
+        
+        .log-entry.warning {
+            color: #fbbf24;
+            border-left-color: #fbbf24;
+        }
+        
+        .log-entry.error {
+            color: #ef4444;
+            border-left-color: #ef4444;
+        }
+        
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 1rem;
+            background: white;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-item {
+            flex: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 콘텐츠 저장 및 리뷰 테스트</h1>
+        <p>AI 생성 시뮬레이션 → 콘텐츠 저장 → 리뷰 모드 테스트</p>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">총 페이지</div>
+                <div class="stat-value" id="total-pages">24</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">생성 완료</div>
+                <div class="stat-value" id="completed-pages">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">저장된 콘텐츠</div>
+                <div class="stat-value" id="stored-content">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">검토 가능</div>
+                <div class="stat-value" id="reviewable">0</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>1. 시뮬레이션 제어</h2>
+        <button class="btn" id="btn-start">🚀 생성 시뮬레이션 시작</button>
+        <button class="btn btn-secondary" id="btn-stop">⏹️ 중지</button>
+        <button class="btn btn-secondary" id="btn-clear">🗑️ 모두 초기화</button>
+        <button class="btn btn-success" id="btn-review">👁️ 리뷰 모드 진입</button>
+        
+        <div class="log" id="simulation-log"></div>
+    </div>
+    
+    <div class="container">
+        <h2>2. 메뉴별 콘텐츠 상태</h2>
+        <div class="grid" id="content-grid"></div>
+    </div>
+    
+    <div class="container">
+        <h2>3. 리뷰 모드 테스트</h2>
+        <button class="btn" id="btn-test-about">회사소개 페이지 테스트</button>
+        <button class="btn" id="btn-test-research">연구분야 페이지 테스트</button>
+        <button class="btn" id="btn-test-services">솔루션 페이지 테스트</button>
+        <button class="btn btn-secondary" id="btn-debug">💾 저장소 디버그</button>
+        
+        <div class="iframe-container">
+            <iframe id="preview-frame" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <!-- Scripts (이미 head에서 로드됨) -->
+    
+    <script>
+        // 전역 변수들
+        let storage = null;
+        let simulationInterval = null;
+        let currentIndex = 0;
+        
+        // 메뉴 데이터
+        const menuData = {
+            menus: [
+                {
+                    id: 'about',
+                    title: 'About',
+                    koreanTitle: '대학소개',
+                    submenus: [
+                        { id: 'company', title: 'Company', koreanTitle: '회사소개' },
+                        { id: 'mission', title: 'Mission', koreanTitle: '미션' },
+                        { id: 'history', title: 'History', koreanTitle: '연혁' }
+                    ]
+                },
+                {
+                    id: 'research',
+                    title: 'Research',
+                    koreanTitle: '연구',
+                    submenus: [
+                        { id: 'fields', title: 'Fields', koreanTitle: '연구분야' },
+                        { id: 'facilities', title: 'Facilities', koreanTitle: '시설' },
+                        { id: 'publications', title: 'Publications', koreanTitle: '논문' }
+                    ]
+                },
+                {
+                    id: 'services',
+                    title: 'Services',
+                    koreanTitle: '학사',
+                    submenus: [
+                        { id: 'solutions', title: 'Solutions', koreanTitle: '솔루션' },
+                        { id: 'products', title: 'Products', koreanTitle: '제품' },
+                        { id: 'support', title: 'Support', koreanTitle: '지원' }
+                    ]
+                }
+            ]
+        };
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('페이지 로드 완료, 초기화 시작...');
+            addLog('📱 페이지 로드 완료, 초기화 시작...', 'info');
+            
+            // 스크립트 로드 확인
+            console.log('ContentStorage 클래스 확인:', typeof ContentStorage);
+            console.log('JSPContentStorage 클래스 확인:', typeof window.JSPContentStorage);
+            addLog(`ContentStorage: ${typeof ContentStorage}`, 'info');
+            addLog(`JSPContentStorage: ${typeof window.JSPContentStorage}`, 'info');
+            
+            // ContentStorage 초기화
+            try {
+                if (window.JSPContentStorage) {
+                    storage = new JSPContentStorage();
+                    addLog('JSP ContentStorage 사용 (하이브리드 모드)', 'success');
+                } else if (typeof ContentStorage !== 'undefined') {
+                    storage = new ContentStorage();
+                    addLog('기본 ContentStorage 사용 (로컬 모드)', 'success');
+                } else {
+                    throw new Error('ContentStorage 클래스를 찾을 수 없습니다');
+                }
+                
+                console.log('Storage 초기화 완료:', storage);
+            } catch (error) {
+                console.error('Storage 초기화 실패:', error);
+                addLog(`❌ Storage 초기화 실패: ${error.message}`, 'error');
+            }
+            
+            // 이벤트 리스너 설정
+            try {
+                setupEventListeners();
+                addLog('✅ 이벤트 리스너 설정 완료', 'success');
+            } catch (error) {
+                console.error('이벤트 리스너 설정 실패:', error);
+                addLog(`❌ 이벤트 리스너 설정 실패: ${error.message}`, 'error');
+            }
+            
+            // 초기 상태 표시
+            try {
+                updateContentGrid();
+                updateStats();
+                addLog('✅ 초기 상태 표시 완료', 'success');
+            } catch (error) {
+                console.error('초기 상태 표시 실패:', error);
+                addLog(`❌ 초기 상태 표시 실패: ${error.message}`, 'error');
+            }
+            
+            addLog('🎯 테스트 페이지 초기화 완료', 'success');
+        });
+        
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            const startBtn = document.getElementById('btn-start');
+            if (startBtn) {
+                console.log('✅ 시작 버튼 찾음:', startBtn);
+                startBtn.addEventListener('click', function() {
+                    console.log('🔘 시작 버튼 클릭됨!');
+                    addLog('🔘 시작 버튼 클릭 감지', 'info');
+                    startSimulation();
+                });
+            } else {
+                console.error('❌ 시작 버튼을 찾을 수 없음');
+                addLog('❌ 시작 버튼을 찾을 수 없음', 'error');
+            }
+            
+            const stopBtn = document.getElementById('btn-stop');
+            if (stopBtn) {
+                stopBtn.addEventListener('click', stopSimulation);
+            }
+            
+            const clearBtn = document.getElementById('btn-clear');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', clearAll);
+            }
+            
+            const reviewBtn = document.getElementById('btn-review');
+            if (reviewBtn) {
+                reviewBtn.addEventListener('click', enterReviewMode);
+            }
+            
+            const testAboutBtn = document.getElementById('btn-test-about');
+            if (testAboutBtn) {
+                testAboutBtn.addEventListener('click', () => testReviewPage('about', 'company'));
+            }
+            
+            const testResearchBtn = document.getElementById('btn-test-research');
+            if (testResearchBtn) {
+                testResearchBtn.addEventListener('click', () => testReviewPage('research', 'fields'));
+            }
+            
+            const testServicesBtn = document.getElementById('btn-test-services');
+            if (testServicesBtn) {
+                testServicesBtn.addEventListener('click', () => testReviewPage('services', 'solutions'));
+            }
+            
+            const debugBtn = document.getElementById('btn-debug');
+            if (debugBtn) {
+                debugBtn.addEventListener('click', showStorageDebug);
+            }
+            
+            // 키보드 단축키
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 's' && e.ctrlKey) {
+                    e.preventDefault();
+                    startSimulation();
+                } else if (e.key === 'r' && e.ctrlKey) {
+                    e.preventDefault();
+                    enterReviewMode();
+                }
+            });
+        }
+        
+        // 시뮬레이션 시작
+        function startSimulation() {
+            console.log('🚀 startSimulation 함수 호출됨');
+            addLog('🚀 startSimulation 함수 호출됨', 'info');
+            
+            if (simulationInterval) {
+                console.log('⚠️ 이미 시뮬레이션이 진행 중');
+                addLog('이미 시뮬레이션이 진행 중입니다', 'warning');
+                return;
+            }
+            
+            if (!storage) {
+                console.error('❌ Storage가 초기화되지 않음');
+                addLog('❌ Storage가 초기화되지 않았습니다', 'error');
+                return;
+            }
+            
+            console.log('✅ 시뮬레이션 시작 조건 확인 완료');
+            addLog('🚀 콘텐츠 생성 시뮬레이션 시작', 'info');
+            currentIndex = 0;
+            
+            const allPages = [];
+            menuData.menus.forEach(menu => {
+                menu.submenus.forEach(submenu => {
+                    allPages.push({ menu, submenu });
+                });
+            });
+            
+            console.log(`📋 총 ${allPages.length}개 페이지 생성 예정`);
+            addLog(`📋 총 ${allPages.length}개 페이지 생성 예정`, 'info');
+            
+            simulationInterval = setInterval(async () => {
+                console.log(`🔄 페이지 ${currentIndex + 1}/${allPages.length} 처리 중`);
+                
+                if (currentIndex >= allPages.length) {
+                    stopSimulation();
+                    addLog('✅ 모든 페이지 생성 완료!', 'success');
+                    return;
+                }
+                
+                const { menu, submenu } = allPages[currentIndex];
+                try {
+                    await simulatePageGeneration(menu, submenu);
+                    currentIndex++;
+                    
+                    updateContentGrid();
+                    updateStats();
+                } catch (error) {
+                    console.error('페이지 생성 오류:', error);
+                    addLog(`❌ 페이지 생성 오류: ${error.message}`, 'error');
+                }
+            }, 1000); // 1초마다 페이지 생성
+            
+            console.log('✅ 시뮬레이션 interval 설정 완료');
+        }
+        
+        // 페이지 생성 시뮬레이션
+        async function simulatePageGeneration(menu, submenu) {
+            const pageId = `${menu.id}/${submenu.id}`;
+            addLog(`📄 생성 중: ${menu.koreanTitle} > ${submenu.koreanTitle}`, 'info');
+            
+            // 실제 이화여대 템플릿 콘텐츠 생성 (메인 앱과 동일)
+            const realContent = getRealContentData(menu.id, submenu.id);
+            const content = {
+                title: realContent.title,
+                subtitle: realContent.subtitle,
+                mainContent: realContent.content,
+                features: realContent.features,
+                htmlContent: generateEwhaTemplate(menu, submenu, realContent), // 이화여대 템플릿
+                processingTime: Math.random() * 3 + 1
+            };
+            
+            // ContentStorage에 저장
+            try {
+                const result = await storage.storeGeneratedContent(pageId, content);
+                addLog(`✅ 저장 완료: ${pageId}`, 'success');
+            } catch (error) {
+                addLog(`❌ 저장 실패: ${pageId} - ${error.message}`, 'error');
+            }
+        }
+        
+        // 메인 앱의 AI Simulator 인스턴스와 콘텐츠 데이터베이스 사용
+        let aiSimulator = null;
+        let mainContentDatabase = null;
+        
+        // 메인 앱과 동일한 콘텐츠 데이터베이스 가져오기
+        function initializeMainAppData() {
+            // AISimulator 인스턴스 생성 (메인 앱과 동일)
+            aiSimulator = new AISimulator(null); // app은 null로 설정 (테스트 환경)
+            mainContentDatabase = aiSimulator.contentDatabase;
+            
+            console.log('✅ 메인 앱 데이터 초기화 완료:', mainContentDatabase);
+            return mainContentDatabase;
+        }
+
+        // 실제 콘텐츠 데이터 가져오기 (메인 앱과 동일한 데이터베이스 사용)
+        function getRealContentData(menuId, submenuId) {
+            if (!mainContentDatabase) {
+                initializeMainAppData();
+            }
+            
+            const contentData = mainContentDatabase[menuId]?.[submenuId];
+            console.log(`🔍 메인 앱 콘텐츠 데이터 조회: ${menuId}/${submenuId}`, contentData);
+            
+            // 메인 앱 데이터가 있으면 return, 없으면 기본값 반환
+            if (contentData) {
+                return contentData;
+            }
+            
+            return {
+                title: '페이지 제목',
+                subtitle: '페이지 부제목',
+                content: ['기본 콘텐츠입니다.'],
+                features: [
+                    { title: '기본 기능', desc: '기본 설명', icon: '📋' }
+                ]
+            };
+        }
+        
+        // 기존 대용량 데이터베이스 함수 (호환성 유지를 위해 백업)
+        function getLegacyContentData(menuId, submenuId) {
+            const contentDatabase = {
+                'about': {
+                    'company': {
+                        title: '이화여자대학교를 소개합니다',
+                        subtitle: '1886년 창립, 137년 전통의 명문 여자대학교',
+                        content: [
+                            '이화여자대학교는 1886년 미국 감리교 여성 선교사 메리 F. 스크랜턴에 의해 창립된 한국 최초의 여성 고등교육기관입니다.',
+                            '137년간 여성 인재 양성의 산실로서 한국 사회 발전에 크게 기여해왔으며, 현재는 글로벌 리더를 양성하는 세계적인 명문대학으로 자리매김했습니다.',
+                            '자유롭고 창의적인 학문 환경에서 전인교육을 실현하며, 미래를 선도하는 여성 지식인을 양성하고 있습니다.'
+                        ],
+                        features: [
+                            { title: '글로벌 리더십', desc: '세계 각국에서 활약하는 동문들', icon: '🌍' },
+                            { title: '학문적 우수성', desc: '국내외 대학 평가 최상위권', icon: '🏆' },
+                            { title: '혁신적 교육', desc: '미래형 융합교육 프로그램', icon: '💡' }
+                        ]
+                    },
+                    'mission': {
+                        title: '교육이념과 비전',
+                        subtitle: '진리·사랑·봉사의 건학이념으로',
+                        content: [
+                            '이화여자대학교는 기독교 정신을 바탕으로 진리·사랑·봉사의 교육이념을 추구합니다.',
+                            '학생 중심의 창의적 교육과 연구를 통해 인류사회에 기여하는 글로벌 리더를 양성합니다.',
+                            '다양성과 포용성을 바탕으로 지속가능한 미래를 만들어가는 책임감 있는 세계시민을 교육합니다.'
+                        ],
+                        features: [
+                            { title: '진리 추구', desc: '학문적 진리와 지식 탐구', icon: '📚' },
+                            { title: '사랑 실천', desc: '인간 존중과 상호 배려', icon: '❤️' },
+                            { title: '봉사 정신', desc: '사회 기여와 나눔의 실천', icon: '🤝' }
+                        ]
+                    },
+                    'history': {
+                        title: '137년의 찬란한 역사',
+                        subtitle: '한국 여성교육의 출발점에서 미래까지',
+                        content: [
+                            '1886년 이화학당으로 시작된 우리 대학은 한국 최초의 여성 고등교육기관으로서 역사적 의미를 지닙니다.',
+                            '일제강점기와 한국전쟁 등 격동의 시대를 거치며 한국 여성교육의 등불 역할을 해왔습니다.',
+                            '오늘날 23개 단과대학, 대학원과 전문대학원을 갖춘 종합대학교로 발전했습니다.'
+                        ],
+                        features: [
+                            { title: '1886년', desc: '이화학당 창립, 여성교육의 시작', icon: '🏛️' },
+                            { title: '1925년', desc: '4년제 대학으로 승격', icon: '🎓' },
+                            { title: '2024년', desc: '글로벌 명문대학으로 도약', icon: '🚀' }
+                        ]
+                    }
+                },
+                'research': {
+                    'fields': {
+                        title: '혁신적 연구 분야',
+                        subtitle: '미래를 선도하는 창의적 연구',
+                        content: [
+                            '이화여자대학교는 인문학부터 첨단 과학기술까지 광범위한 분야에서 세계적 수준의 연구를 수행하고 있습니다.',
+                            '학제간 융합연구를 통해 새로운 지식을 창출하고, 인류가 직면한 문제 해결에 기여하고 있습니다.',
+                            '정부와 기업의 연구과제를 수행하며 산학협력을 통한 실용적 연구 성과를 도출하고 있습니다.'
+                        ],
+                        features: [
+                            { title: 'AI·빅데이터', desc: '인공지능과 데이터 사이언스', icon: '🤖' },
+                            { title: '바이오메디컬', desc: '의생명과학 융합연구', icon: '🧬' },
+                            { title: '에너지·환경', desc: '지속가능 발전 연구', icon: '🌱' }
+                        ]
+                    },
+                    'facilities': {
+                        title: '첨단 연구시설',
+                        subtitle: '세계 수준의 연구 인프라',
+                        content: [
+                            '최신 연구장비와 시설을 갖춘 연구환경에서 창의적인 연구 활동이 이루어지고 있습니다.',
+                            '중앙연구기기원, 동물실험센터 등 공동연구시설을 운영하여 연구 효율성을 높이고 있습니다.',
+                            '국제적 수준의 연구시설과 장비로 글로벌 연구 협력을 활발히 진행하고 있습니다.'
+                        ],
+                        features: [
+                            { title: '중앙연구기기원', desc: '첨단 분석장비 공동 활용', icon: '🔬' },
+                            { title: 'AI센터', desc: '인공지능 연구 허브', icon: '💻' },
+                            { title: '창업보육센터', desc: '연구 성과의 사업화 지원', icon: '🏢' }
+                        ]
+                    },
+                    'publications': {
+                        title: '우수한 연구 성과',
+                        subtitle: '세계가 인정하는 학술적 성취',
+                        content: [
+                            '매년 국내외 유수 학술지에 다수의 논문을 발표하며 학술적 우수성을 인정받고 있습니다.',
+                            'SCI급 논문 발표 수가 꾸준히 증가하고 있으며, 인용지수도 지속적으로 향상되고 있습니다.',
+                            '국제 공동연구를 통한 논문 발표가 활발하여 글로벌 연구 네트워크를 확장하고 있습니다.'
+                        ],
+                        features: [
+                            { title: 'SCI 논문', desc: '연간 1,000편 이상 발표', icon: '📄' },
+                            { title: '국제 공동연구', desc: '50개국 200개 대학과 협력', icon: '🌐' },
+                            { title: '특허 출원', desc: '혁신적 기술의 지식재산권 확보', icon: '⚖️' }
+                        ]
+                    }
+                },
+                'services': {
+                    'solutions': {
+                        title: '학사 프로그램',
+                        subtitle: '다양하고 전문적인 교육과정',
+                        content: [
+                            '23개 단과대학에서 70여 개의 전공을 제공하여 학생들의 다양한 학문적 관심을 충족시키고 있습니다.',
+                            '전공과 부전공, 복수전공, 연계전공 등 유연한 학사제도를 통해 융합적 사고력을 기를 수 있습니다.',
+                            '국제화 프로그램과 산학협력 교육과정을 통해 글로벌 경쟁력을 갖춘 인재를 양성합니다.'
+                        ],
+                        features: [
+                            { title: '융합전공', desc: '학제간 통합 교육과정', icon: '🔗' },
+                            { title: '국제교류', desc: '해외 교환학생 프로그램', icon: '✈️' },
+                            { title: '현장실습', desc: '기업 연계 실무 교육', icon: '🏭' }
+                        ]
+                    },
+                    'products': {
+                        title: '교육 서비스',
+                        subtitle: '혁신적인 교육 방법론',
+                        content: [
+                            '학생 중심의 능동적 학습을 위한 다양한 교육 방법을 도입하고 있습니다.',
+                            '디지털 기술을 활용한 스마트 캠퍼스 구축으로 효과적인 학습 환경을 제공합니다.',
+                            '개인 맞춤형 학습 지원 시스템으로 학생 개개인의 성장을 돕고 있습니다.'
+                        ],
+                        features: [
+                            { title: '플립 러닝', desc: '학생 참여형 수업 방식', icon: '🔄' },
+                            { title: '온라인 강의', desc: '시공간 제약 없는 학습', icon: '💻' },
+                            { title: '멘토링', desc: '선후배 간 학습 지원', icon: '👥' }
+                        ]
+                    },
+                    'support': {
+                        title: '학생 지원 서비스',
+                        subtitle: '성공적인 대학생활을 위한 종합 지원',
+                        content: [
+                            '학생들의 학업, 진로, 생활 전반에 걸친 체계적인 지원 서비스를 제공합니다.',
+                            '장학금, 기숙사, 상담센터 등 다양한 복지 시설과 프로그램을 운영하고 있습니다.',
+                            '취업 지원 센터를 통해 진로 설계부터 취업까지 전 과정을 지원합니다.'
+                        ],
+                        features: [
+                            { title: '장학 제도', desc: '우수 학생 학비 지원', icon: '💰' },
+                            { title: '상담 서비스', desc: '심리·학업·진로 상담', icon: '💬' },
+                            { title: '취업 지원', desc: '맞춤형 진로 코칭', icon: '💼' }
+                        ]
+                    }
+                }
+            };
+            
+            return contentDatabase[menuId]?.[submenuId] || {
+                title: '페이지 제목',
+                subtitle: '페이지 부제목',
+                content: ['기본 콘텐츠입니다.'],
+                features: [
+                    { title: '기본 기능', desc: '기본 설명', icon: '📋' }
+                ]
+            };
+        }
+
+        // 이화여대 템플릿 HTML 생성 (메인 앱 ContentStorage와 동일한 스타일)
+        function generateEwhaTemplate(menu, submenu, contentData) {
+            // 메인 앱의 ContentStorage.generateRealContentHTML과 동일한 구조 사용
+            const pageTitle = contentData.title;
+            const siteInfo = {
+                siteName: '이화여자대학교',
+                domain: 'ewha.ac.kr'
+            };
+            
+            function getSectionTitle(menuId) {
+                const sectionTitles = {
+                    'about': '대학소개',
+                    'research': '연구', 
+                    'services': '학사',
+                    'team': '구성원',
+                    'portfolio': '성과',
+                    'resources': '자료실',
+                    'news': '소식',
+                    'contact': '문의'
+                };
+                return sectionTitles[menuId] || '페이지';
+            }
+            
+            function formatMainContent(content) {
+                if (typeof content === 'string') {
+                    return `<p>${content}</p>`;
+                }
+                
+                if (Array.isArray(content)) {
+                    return content.map(paragraph => `<p>${paragraph}</p>`).join('');
+                }
+                
+                return `<p>${content || '콘텐츠가 생성되지 않았습니다.'}</p>`;
+            }
+            
+            const sectionTitle = getSectionTitle(menu.id);
+            
+            return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${pageTitle} - ${siteInfo.siteName}</title>
+                ${getPageStyles()}
+            </head>
+            <body>
+                <!-- Generated Content Banner -->
+                <div class="generated-banner">
+                    <span class="icon">✨</span>
+                    AI가 생성한 실제 콘텐츠 - ${new Date().toLocaleDateString('ko-KR')} 생성
+                </div>
+                
+                <!-- Header -->
+                <header class="header">
+                    <div class="header-inner">
+                        <div class="logo">
+                            <svg viewBox="0 0 32 32" fill="#6366f1">
+                                <circle cx="16" cy="16" r="14" opacity="0.2"/>
+                                <path d="M16 8 L21 13 L21 19 L16 24 L11 19 L11 13 Z"/>
+                            </svg>
+                            <span>${siteInfo.siteName}</span>
+                        </div>
+                        <nav>
+                            <ul class="nav-menu">
+                                <li><a href="#" class="${menu.id === 'about' ? 'active' : ''}">대학소개</a></li>
+                                <li><a href="#" class="${menu.id === 'research' ? 'active' : ''}">연구</a></li>
+                                <li><a href="#" class="${menu.id === 'services' ? 'active' : ''}">학사</a></li>
+                                <li><a href="#" class="${menu.id === 'team' ? 'active' : ''}">구성원</a></li>
+                                <li><a href="#" class="${menu.id === 'portfolio' ? 'active' : ''}">성과</a></li>
+                                <li><a href="#" class="${menu.id === 'resources' ? 'active' : ''}">자료실</a></li>
+                                <li><a href="#" class="${menu.id === 'news' ? 'active' : ''}">소식</a></li>
+                                <li><a href="#" class="${menu.id === 'contact' ? 'active' : ''}">문의</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </header>
+                
+                <!-- Hero Section -->
+                <section class="hero">
+                    <div class="hero-content">
+                        <h1>${contentData.title}</h1>
+                        <p class="subtitle">${contentData.subtitle}</p>
+                    </div>
+                </section>
+                
+                <!-- Main Content -->
+                <main class="main-content">
+                    <div class="container">
+                        <div class="breadcrumb">
+                            <a href="#">홈</a>
+                            <span>›</span>
+                            <a href="#">${sectionTitle}</a>
+                            <span>›</span>
+                            <span>${contentData.title}</span>
+                        </div>
+                        
+                        <div class="content-section">
+                            <h2>개요</h2>
+                            <div class="main-content-text">
+                                ${formatMainContent(contentData.content)}
+                            </div>
+                        </div>
+                        
+                        ${contentData.features && contentData.features.length > 0 ? `
+                        <div class="features-grid">
+                            ${contentData.features.map(feature => `
+                                <div class="feature-card">
+                                    <h3>
+                                        <div class="feature-icon">${feature.icon || '🌟'}</div>
+                                        ${feature.title}
+                                    </h3>
+                                    <p>${feature.desc}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        <div class="generation-info">
+                            <h3>생성 정보</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="label">생성 시각:</span>
+                                    <span class="value">${new Date().toLocaleString('ko-KR')}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">처리 시간:</span>
+                                    <span class="value">${Math.floor(Math.random() * 5) + 2}초</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">AI 모델:</span>
+                                    <span class="value">gpt-4</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+                
+                <!-- Footer -->
+                <footer class="footer">
+                    <div class="footer-content">
+                        <p>© 2024 ${siteInfo.siteName}. All rights reserved. | AI로 생성된 실제 콘텐츠입니다.</p>
+                    </div>
+                </footer>
+                
+                <!-- Real Content Indicator -->
+                <div class="real-content-indicator">
+                    🎯 실제 생성 콘텐츠
+                </div>
+            </body>
+            </html>
+        `;
+        }
+        
+        // 메인 앱과 동일한 페이지 스타일 생성 (ContentStorage에서 가져옴)
+        function getPageStyles() {
+            return `
+                <style>
+                    ${getCommonStyles()}
+                    ${getGeneratedContentStyles()}
+                </style>
+            `;
+        }
+        
+        // 공통 스타일 (메인 앱 ContentStorage와 동일)
+        function getCommonStyles() {
+            return `
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    background-color: #f9fafb;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                }
+                
+                .container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 0 2rem;
+                }
+                
+                /* Generated Content Banner */
+                .generated-banner {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    padding: 8px 0;
+                    text-align: center;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    position: sticky;
+                    top: 0;
+                    z-index: 200;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                
+                .generated-banner .icon {
+                    margin-right: 8px;
+                }
+            `
+        }
+        
+        // 생성 콘텐츠 전용 스타일 (메인 앱 ContentStorage와 동일)
+        function getGeneratedContentStyles() {
+            return `
+                /* Header */
+                .header {
+                    background: #ffffff;
+                    border-bottom: 1px solid #e5e7eb;
+                    position: sticky;
+                    top: 32px;
+                    z-index: 100;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                }
+                
+                .header-inner {
+                    max-width: 1440px;
+                    margin: 0 auto;
+                    padding: 0 2rem;
+                    height: 64px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                
+                .logo {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #1f2937;
+                }
+                
+                .logo svg {
+                    width: 32px;
+                    height: 32px;
+                }
+                
+                .nav-menu {
+                    display: flex;
+                    gap: 2rem;
+                    list-style: none;
+                }
+                
+                .nav-menu a {
+                    color: #4b5563;
+                    text-decoration: none;
+                    font-weight: 500;
+                    transition: color 0.2s;
+                    position: relative;
+                }
+                
+                .nav-menu a:hover {
+                    color: #6366f1;
+                }
+                
+                .nav-menu a.active {
+                    color: #6366f1;
+                    font-weight: 600;
+                }
+                
+                .nav-menu a.active::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -16px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 24px;
+                    height: 2px;
+                    background: #6366f1;
+                }
+                
+                /* Hero Section */
+                .hero {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 4rem 0;
+                    text-align: center;
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .hero-content {
+                    position: relative;
+                    z-index: 1;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 0 2rem;
+                }
+                
+                .hero h1 {
+                    font-size: 3rem;
+                    margin-bottom: 1.5rem;
+                    font-weight: 700;
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                
+                .hero .subtitle {
+                    font-size: 1.25rem;
+                    opacity: 0.9;
+                    font-weight: 400;
+                }
+                
+                /* Main Content */
+                .main-content {
+                    flex: 1;
+                    background: white;
+                    padding: 4rem 0;
+                }
+                
+                .breadcrumb {
+                    display: flex;
+                    gap: 0.5rem;
+                    font-size: 0.875rem;
+                    color: #6b7280;
+                    margin-bottom: 2rem;
+                }
+                
+                .breadcrumb span {
+                    color: #d1d5db;
+                }
+                
+                .breadcrumb a {
+                    color: #6b7280;
+                    text-decoration: none;
+                }
+                
+                .breadcrumb a:hover {
+                    color: #6366f1;
+                }
+                
+                .content-section {
+                    margin-bottom: 3rem;
+                }
+                
+                .content-section h2 {
+                    font-size: 2rem;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-bottom: 1.5rem;
+                }
+                
+                .main-content-text p {
+                    font-size: 1.125rem;
+                    color: #4b5563;
+                    line-height: 1.8;
+                    margin-bottom: 1.5rem;
+                }
+                
+                .features-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                    gap: 2rem;
+                    margin-top: 3rem;
+                }
+                
+                .feature-card {
+                    background: #f8fafc;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .feature-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: linear-gradient(135deg, #10b981, #059669);
+                }
+                
+                .feature-card:hover {
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                    transform: translateY(-5px);
+                }
+                
+                .feature-card h3 {
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-bottom: 1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                
+                .feature-icon {
+                    width: 24px;
+                    height: 24px;
+                    background: #10b981;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 12px;
+                }
+                
+                .feature-card p {
+                    color: #6b7280;
+                    line-height: 1.6;
+                    font-size: 1rem;
+                }
+                
+                /* Generation Info */
+                .generation-info {
+                    background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
+                    border: 1px solid #c4b5fd;
+                    border-radius: 12px;
+                    padding: 2rem;
+                    margin: 3rem 0;
+                }
+                
+                .generation-info h3 {
+                    color: #5b21b6;
+                    font-size: 1.25rem;
+                    margin-bottom: 1rem;
+                }
+                
+                .info-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 1rem;
+                }
+                
+                .info-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0.5rem 0;
+                    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+                }
+                
+                .info-item:last-child {
+                    border-bottom: none;
+                }
+                
+                .info-item .label {
+                    font-weight: 500;
+                    color: #6b46c1;
+                }
+                
+                .info-item .value {
+                    font-weight: 600;
+                    color: #5b21b6;
+                }
+                
+                /* Footer */
+                .footer {
+                    background: #1f2937;
+                    color: #d1d5db;
+                    padding: 3rem 0 2rem;
+                    margin-top: auto;
+                }
+                
+                .footer-content {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 0 2rem;
+                    text-align: center;
+                }
+                
+                .footer p {
+                    font-size: 0.875rem;
+                    opacity: 0.8;
+                }
+                
+                /* Real Content Indicator */
+                .real-content-indicator {
+                    position: fixed;
+                    top: 50%;
+                    right: 20px;
+                    transform: translateY(-50%);
+                    background: rgba(16, 185, 129, 0.9);
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 50px;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    z-index: 1000;
+                    backdrop-filter: blur(8px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                }
+            `;
+        }
+        
+        // 시뮬레이션 중지
+        function stopSimulation() {
+            if (simulationInterval) {
+                        }
+                        
+                        .header {
+                            background: rgba(255, 255, 255, 0.95);
+                            backdrop-filter: blur(10px);
+                            padding: 1rem 0;
+                            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+                            position: sticky;
+                            top: 0;
+                            z-index: 100;
+                        }
+                        
+                        .container {
+                            max-width: 1200px;
+                            margin: 0 auto;
+                            padding: 0 2rem;
+                        }
+                        
+                        .nav {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        
+                        .logo {
+                            display: flex;
+                            align-items: center;
+                            gap: 1rem;
+                            font-size: 1.5rem;
+                            font-weight: 700;
+                            color: #667eea;
+                        }
+                        
+                        .logo-symbol {
+                            width: 40px;
+                            height: 40px;
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-weight: bold;
+                        }
+                        
+                        .nav-menu {
+                            display: flex;
+                            list-style: none;
+                            gap: 2rem;
+                        }
+                        
+                        .nav-menu a {
+                            text-decoration: none;
+                            color: #4a5568;
+                            font-weight: 500;
+                            transition: color 0.3s;
+                        }
+                        
+                        .nav-menu a:hover {
+                            color: #667eea;
+                        }
+                        
+                        .hero {
+                            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+                            color: white;
+                            padding: 4rem 0;
+                            text-align: center;
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        
+                        .hero::before {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+                        }
+                        
+                        .hero-content {
+                            position: relative;
+                            z-index: 1;
+                        }
+                        
+                        .hero h1 {
+                            font-size: 3rem;
+                            margin-bottom: 1rem;
+                            font-weight: 700;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        }
+                        
+                        .hero .subtitle {
+                            font-size: 1.25rem;
+                            opacity: 0.9;
+                            max-width: 600px;
+                            margin: 0 auto;
+                        }
+                        
+                        .main-content {
+                            background: white;
+                            margin: -2rem auto 0;
+                            border-radius: 20px 20px 0 0;
+                            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+                            padding: 4rem 0;
+                            position: relative;
+                            z-index: 10;
+                        }
+                        
+                        .breadcrumb {
+                            margin-bottom: 2rem;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            font-size: 0.9rem;
+                            color: #718096;
+                        }
+                        
+                        .content-section {
+                            margin-bottom: 4rem;
+                        }
+                        
+                        .content-section h2 {
+                            font-size: 2rem;
+                            color: #2d3748;
+                            margin-bottom: 1.5rem;
+                            position: relative;
+                            padding-bottom: 0.5rem;
+                        }
+                        
+                        .content-section h2::after {
+                            content: '';
+                            position: absolute;
+                            bottom: 0;
+                            left: 0;
+                            width: 50px;
+                            height: 3px;
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            border-radius: 2px;
+                        }
+                        
+                        .content-section p {
+                            font-size: 1.1rem;
+                            margin-bottom: 1.5rem;
+                            color: #4a5568;
+                        }
+                        
+                        .features-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                            gap: 2rem;
+                            margin-top: 3rem;
+                        }
+                        
+                        .feature-card {
+                            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+                            padding: 2rem;
+                            border-radius: 15px;
+                            border: 1px solid #e2e8f0;
+                            transition: all 0.3s ease;
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        
+                        .feature-card::before {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            height: 4px;
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                        }
+                        
+                        .feature-card:hover {
+                            transform: translateY(-5px);
+                            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+                        }
+                        
+                        .feature-icon {
+                            font-size: 2.5rem;
+                            margin-bottom: 1rem;
+                            display: block;
+                        }
+                        
+                        .feature-card h3 {
+                            font-size: 1.25rem;
+                            color: #2d3748;
+                            margin-bottom: 0.75rem;
+                            font-weight: 600;
+                        }
+                        
+                        .feature-card p {
+                            color: #718096;
+                            font-size: 1rem;
+                            line-height: 1.6;
+                        }
+                        
+                        .ai-badge {
+                            position: fixed;
+                            bottom: 2rem;
+                            right: 2rem;
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            color: white;
+                            padding: 1rem 1.5rem;
+                            border-radius: 50px;
+                            font-size: 0.9rem;
+                            font-weight: 500;
+                            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+                            backdrop-filter: blur(10px);
+                            z-index: 1000;
+                            animation: pulse 2s infinite;
+                        }
+                        
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); }
+                            50% { transform: scale(1.05); }
+                        }
+                        
+                        .footer {
+                            background: #2d3748;
+                            color: #cbd5e0;
+                            padding: 3rem 0 2rem;
+                            text-align: center;
+                        }
+                        
+                        .footer p {
+                            margin: 0;
+                            font-size: 0.9rem;
+                        }
+                        
+                        @media (max-width: 768px) {
+                            .hero h1 {
+                                font-size: 2rem;
+                            }
+                            
+                            .nav-menu {
+                                display: none;
+                            }
+                            
+                            .features-grid {
+                                grid-template-columns: 1fr;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <header class="header">
+                        <div class="container">
+                            <nav class="nav">
+                                <div class="logo">
+                                    <div class="logo-symbol">E</div>
+                                    <span>이화여자대학교</span>
+                                </div>
+                                <ul class="nav-menu">
+                                    <li><a href="#">대학소개</a></li>
+                                    <li><a href="#">연구</a></li>
+                                    <li><a href="#">학사</a></li>
+                                    <li><a href="#">입학</a></li>
+                                    <li><a href="#">캠퍼스</a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </header>
+
+                    <section class="hero">
+                        <div class="hero-content">
+                            <div class="container">
+                                <h1>${contentData.title}</h1>
+                                <p class="subtitle">${contentData.subtitle}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <main class="main-content">
+                        <div class="container">
+                            <div class="breadcrumb">
+                                <span>홈</span>
+                                <span>›</span>
+                                <span>${menu.koreanTitle}</span>
+                                <span>›</span>
+                                <span>${submenu.koreanTitle}</span>
+                            </div>
+
+                            <div class="content-section">
+                                <h2>개요</h2>
+                                ${contentData.content.map(paragraph => `<p>${paragraph}</p>`).join('')}
+                            </div>
+
+                            <div class="features-grid">
+                                ${contentData.features.map(feature => `
+                                    <div class="feature-card">
+                                        <span class="feature-icon">${feature.icon}</span>
+                                        <h3>${feature.title}</h3>
+                                        <p>${feature.desc}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </main>
+
+                    <footer class="footer">
+                        <div class="container">
+                            <p>© 2024 이화여자대학교. 모든 권리 보유. | AI로 생성된 콘텐츠입니다.</p>
+                        </div>
+                    </footer>
+
+                    <div class="ai-badge">
+                        ✨ AI 생성 완료
+                    </div>
+                </body>
+                </html>
+            `;
+        }
+        
+        // 시뮬레이션 중지
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                addLog('⏹️ 시뮬레이션 중지됨', 'warning');
+            }
+        }
+        
+        // 모두 초기화
+        function clearAll() {
+            stopSimulation();
+            if (storage) {
+                storage.clearAllContent();
+                addLog('🗑️ 모든 콘텐츠 삭제됨', 'warning');
+                updateContentGrid();
+                updateStats();
+            }
+        }
+        
+        // 리뷰 모드 진입
+        function enterReviewMode() {
+            addLog('👁️ 리뷰 모드 활성화', 'info');
+            
+            // 저장된 콘텐츠 확인
+            let savedCount = 0;
+            menuData.menus.forEach(menu => {
+                menu.submenus.forEach(submenu => {
+                    const pageId = `${menu.id}/${submenu.id}`;
+                    const content = storage.getGeneratedContent(pageId);
+                    if (content) {
+                        savedCount++;
+                        addLog(`✅ 리뷰 가능: ${menu.koreanTitle} > ${submenu.koreanTitle}`, 'success');
+                    }
+                });
+            });
+            
+            addLog(`총 ${savedCount}개 페이지 리뷰 가능`, 'info');
+        }
+        
+        // 리뷰 페이지 테스트
+        function testReviewPage(menuId, submenuId) {
+            const pageId = `${menuId}/${submenuId}`;
+            addLog(`🔍 페이지 리뷰: ${pageId}`, 'info');
+            
+            const menu = menuData.menus.find(m => m.id === menuId);
+            const submenu = menu?.submenus.find(s => s.id === submenuId);
+            
+            if (!menu || !submenu) {
+                addLog(`❌ 메뉴를 찾을 수 없음: ${pageId}`, 'error');
+                return;
+            }
+            
+            // ContentStorage에서 HTML 생성
+            const html = storage.generatePageHTML(menuId, submenuId, submenu);
+            
+            if (html) {
+                document.getElementById('preview-frame').srcdoc = html;
+                addLog(`✅ 페이지 로드 완료: ${menu.koreanTitle} > ${submenu.koreanTitle}`, 'success');
+            } else {
+                addLog(`❌ 페이지 로드 실패: ${pageId}`, 'error');
+            }
+        }
+        
+        // 콘텐츠 그리드 업데이트
+        function updateContentGrid() {
+            const grid = document.getElementById('content-grid');
+            grid.innerHTML = '';
+            
+            menuData.menus.forEach(menu => {
+                menu.submenus.forEach(submenu => {
+                    const pageId = `${menu.id}/${submenu.id}`;
+                    const content = storage ? storage.getGeneratedContent(pageId) : null;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    
+                    const status = content ? 'completed' : 'waiting';
+                    const statusText = content ? '생성됨' : '대기중';
+                    const statusClass = content ? 'completed' : 'waiting';
+                    
+                    card.innerHTML = `
+                        <h3>${menu.koreanTitle} > ${submenu.koreanTitle}</h3>
+                        <p>페이지 ID: ${pageId}</p>
+                        <span class="status ${statusClass}">${statusText}</span>
+                        ${content ? `<p style="font-size: 0.75rem; color: #059669;">✅ 콘텐츠 저장됨</p>` : ''}
+                    `;
+                    
+                    grid.appendChild(card);
+                });
+            });
+        }
+        
+        // 통계 업데이트
+        function updateStats() {
+            if (!storage) return;
+            
+            let completedCount = 0;
+            let storedCount = 0;
+            let reviewableCount = 0;
+            
+            menuData.menus.forEach(menu => {
+                menu.submenus.forEach(submenu => {
+                    const pageId = `${menu.id}/${submenu.id}`;
+                    const content = storage.getGeneratedContent(pageId);
+                    if (content) {
+                        completedCount++;
+                        storedCount++;
+                        if (content.content && (content.content.htmlContent || content.content.title)) {
+                            reviewableCount++;
+                        }
+                    }
+                });
+            });
+            
+            document.getElementById('completed-pages').textContent = completedCount;
+            document.getElementById('stored-content').textContent = storedCount;
+            document.getElementById('reviewable').textContent = reviewableCount;
+        }
+        
+        // 저장소 디버그
+        function showStorageDebug() {
+            if (!storage) {
+                addLog('❌ 저장소가 초기화되지 않음', 'error');
+                return;
+            }
+            
+            addLog('===== 저장소 디버그 정보 =====', 'info');
+            
+            const allContent = storage.getAllGeneratedContent();
+            addLog(`총 저장된 페이지: ${allContent.size}개`, 'info');
+            
+            allContent.forEach((content, pageId) => {
+                addLog(`📄 ${pageId}:`, 'info');
+                addLog(`  - 제목: ${content.content?.title || 'N/A'}`, 'info');
+                addLog(`  - 타임스탬프: ${content.timestamp}`, 'info');
+                addLog(`  - HTML 콘텐츠: ${content.content?.htmlContent ? '있음' : '없음'}`, 'info');
+            });
+            
+            if (window.JSPContentStorage) {
+                const status = window.JSPContentStorage.prototype.getStatus ? storage.getStatus() : null;
+                if (status) {
+                    addLog('===== JSP 저장소 상태 =====', 'info');
+                    addLog(`서버 연결: ${status.serverAvailable ? '✅' : '❌'}`, status.serverAvailable ? 'success' : 'error');
+                    addLog(`하이브리드 모드: ${status.hybridMode ? '활성' : '비활성'}`, 'info');
+                    addLog(`동기화 큐: ${status.syncQueueSize}개`, 'info');
+                }
+            }
+        }
+        
+        // 로그 추가
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('simulation-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+    </script>
+</body>
+</html>

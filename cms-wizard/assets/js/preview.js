@@ -6,6 +6,20 @@ class PreviewManager {
         this.urlDisplay = document.getElementById('browser-url-text');
         this.currentZoom = 100;
         this.currentUrl = '';
+        
+        // ContentStorage 초기화
+        this.initializeContentStorage();
+    }
+    
+    /**
+     * ContentStorage 초기화
+     */
+    initializeContentStorage() {
+        if (!window.contentStorage) {
+            console.log('🔄 PreviewManager: ContentStorage 초기화');
+            window.contentStorage = new ContentStorage();
+        }
+        this.contentStorage = window.contentStorage;
     }
     
     async loadPage(url, showBlankForAI = true) {
@@ -30,8 +44,8 @@ class PreviewManager {
         // Add page transition animation for completed pages
         await this.animatePageTransition();
         
-        // Create template page for already completed pages
-        const pageContent = this.createTemplateContent(url);
+        // ContentStorage를 사용하여 템플릿 페이지 생성
+        const pageContent = this.createTemplateContentFromURL(url);
         
         // Load content into iframe
         this.iframe.srcdoc = pageContent;
@@ -207,7 +221,30 @@ class PreviewManager {
         }
     }
     
-    createTemplateContent(url) {
+    /**
+     * URL로부터 템플릿 콘텐츠 생성 (ContentStorage 사용)
+     */
+    createTemplateContentFromURL(url) {
+        // URL에서 페이지 정보 추출
+        const parts = url.split('/').filter(p => p);
+        const menuId = parts[0] || 'about';
+        const submenuId = parts[1] || 'welcome';
+        
+        // 기본 서브메뉴 객체 생성
+        const submenu = {
+            title: this.getPageTitle(menuId, submenuId),
+            koreanTitle: this.getKoreanPageTitle(menuId, submenuId),
+            url: url
+        };
+        
+        // ContentStorage를 사용하여 페이지 HTML 생성
+        return this.contentStorage.generatePageHTML(menuId, submenuId, submenu);
+    }
+    
+    /**
+     * 기존 createTemplateContent 메서드 (호환성 유지)
+     */
+    createTemplateContent_Legacy(url) {
         // Extract page info from URL
         const parts = url.split('/').filter(p => p);
         const section = parts[0] || 'home';
@@ -256,9 +293,11 @@ class PreviewManager {
                     }
                     
                     .logo {
-                        font-size: 24px;
+                        font-size: 18px;
                         font-weight: bold;
-                        color: #6366F1;
+                        color: #166534;
+                        display: flex;
+                        align-items: center;
                     }
                     
                     .nav-menu {
@@ -274,11 +313,11 @@ class PreviewManager {
                     }
                     
                     .nav-menu a:hover {
-                        color: #6366F1;
+                        color: #166534;
                     }
                     
                     .hero {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        background: linear-gradient(135deg, #166534 0%, #15803d 100%);
                         color: white;
                         padding: 80px 0;
                         text-align: center;
@@ -300,6 +339,20 @@ class PreviewManager {
                     .content {
                         padding: 60px 0;
                         background: white;
+                    }
+                    
+                    .breadcrumb {
+                        display: flex;
+                        gap: 8px;
+                        font-size: 14px;
+                        color: #666;
+                        margin-bottom: 30px;
+                        align-items: center;
+                    }
+                    
+                    .breadcrumb span:last-child {
+                        color: #166534;
+                        font-weight: 500;
                     }
                     
                     .content h2 {
@@ -395,16 +448,17 @@ class PreviewManager {
                 <header class="header">
                     <div class="container">
                         <nav class="nav">
-                            <div class="logo">MyCompany</div>
+                            <div class="logo">
+                                <img src="data:image/svg+xml,%3Csvg viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='18' fill='%23166534' stroke='%23ffffff' stroke-width='2'/%3E%3Ctext x='20' y='25' text-anchor='middle' fill='white' font-size='12' font-weight='bold'%3E이화%3C/text%3E%3C/svg%3E" alt="이화여대" style="width: 40px; height: 40px; margin-right: 12px;">
+                                이화여자대학교 사회복지학과
+                            </div>
                             <ul class="nav-menu">
-                                <li><a href="/about">About</a></li>
-                                <li><a href="/research">Research</a></li>
-                                <li><a href="/services">Services</a></li>
-                                <li><a href="/team">Team</a></li>
-                                <li><a href="/portfolio">Portfolio</a></li>
-                                <li><a href="/resources">Resources</a></li>
-                                <li><a href="/news">News</a></li>
-                                <li><a href="/contact">Contact</a></li>
+                                <li><a href="/about">학과소개</a></li>
+                                <li><a href="/research">학사정보</a></li>
+                                <li><a href="/services">입학정보</a></li>
+                                <li><a href="/team">학생활동</a></li>
+                                <li><a href="/portfolio">자료실</a></li>
+                                <li><a href="/news">커뮤니티</a></li>
                             </ul>
                         </nav>
                     </div>
@@ -414,19 +468,24 @@ class PreviewManager {
                     <div class="container">
                         <h1 class="page-title">${this.getPageTitle(section, page)}</h1>
                         <p class="page-subtitle">
-                            <span class="placeholder-text ai-generating">AI가 콘텐츠를 생성하고 있습니다...</span>
+                            학과 소개 페이지입니다
                         </p>
                     </div>
                 </section>
                 
                 <section class="content">
                     <div class="container">
-                        <h2>Overview</h2>
+                        <div class="breadcrumb">
+                            <span>🏠 홈</span>
+                            <span>›</span>
+                            <span>학과소개</span>
+                            <span>›</span>
+                            <span>인사말</span>
+                        </div>
+                        <h2>개요</h2>
                         <p>
-                            <span class="placeholder-text">Lorem ipsum dolor sit amet</span>
-                            <span class="placeholder-text">consectetur adipiscing elit</span>
-                            <span class="placeholder-text">sed do eiusmod tempor</span>
-                            <span class="placeholder-text">incididunt ut labore et dolore</span>
+                            이화여자대학교 사회복지학과는 사회복지 전문 인력 양성을 위한 교육 프로그램을 제공합니다.
+                            체계적인 이론 교육과 실무 경험을 통해 사회복지 현장에서 활동할 수 있는 역량을 기릅니다.
                         </p>
                         
                         <div class="image-placeholder">
@@ -435,24 +494,21 @@ class PreviewManager {
                         
                         <div class="grid">
                             <div class="card">
-                                <h3><span class="placeholder-text">Feature 1</span></h3>
+                                <h3>교육 프로그램</h3>
                                 <p>
-                                    <span class="placeholder-text">Description text</span>
-                                    <span class="placeholder-text">will be generated</span>
+                                    체계적인 사회복지 교육과정을 통해 전문성을 기릅니다.
                                 </p>
                             </div>
                             <div class="card">
-                                <h3><span class="placeholder-text">Feature 2</span></h3>
+                                <h3>현장 실습</h3>
                                 <p>
-                                    <span class="placeholder-text">Description text</span>
-                                    <span class="placeholder-text">will be generated</span>
+                                    다양한 사회복지 현장에서의 실무 경험을 제공합니다.
                                 </p>
                             </div>
                             <div class="card">
-                                <h3><span class="placeholder-text">Feature 3</span></h3>
+                                <h3>진로 지도</h3>
                                 <p>
-                                    <span class="placeholder-text">Description text</span>
-                                    <span class="placeholder-text">will be generated</span>
+                                    졸업 후 진로에 대한 체계적인 상담과 지원을 제공합니다.
                                 </p>
                             </div>
                         </div>
@@ -463,51 +519,84 @@ class PreviewManager {
         `;
     }
     
+    /**
+     * 영어 페이지 제목 조회 (기존 호환성)
+     */
     getPageTitle(section, page) {
         const titles = {
             'about': {
-                'welcome': 'Welcome to Our Company',
-                'company': 'Company Overview',
-                'mission': 'Our Mission & Vision'
+                'welcome': 'Welcome Message',
+                'company': 'Department Overview',
+                'mission': 'Educational Goals'
             },
             'research': {
-                'areas': 'Research Areas',
-                'projects': 'Current Projects',
-                'publications': 'Publications'
+                'areas': 'Curriculum',
+                'projects': 'Academic Programs',
+                'publications': 'Research Publications'
             },
             'services': {
-                'consulting': 'Consulting Services',
-                'development': 'Development Services',
-                'support': 'Support Services'
+                'consulting': 'Admission Guide',
+                'development': 'Application Process',
+                'support': 'Student Support'
             },
             'team': {
-                'leadership': 'Our Leadership',
-                'researchers': 'Research Team',
-                'careers': 'Join Our Team'
+                'leadership': 'Student Council',
+                'researchers': 'Student Activities',
+                'careers': 'Career Guidance'
             },
             'portfolio': {
-                'case-studies': 'Case Studies',
-                'clients': 'Our Clients',
-                'testimonials': 'Client Testimonials'
-            },
-            'resources': {
-                'blog': 'Blog & Articles',
-                'whitepapers': 'Whitepapers',
-                'tools': 'Tools & Downloads'
+                'case-studies': 'Documents',
+                'clients': 'Forms',
+                'testimonials': 'Resources'
             },
             'news': {
                 'latest': 'Latest News',
-                'events': 'Upcoming Events',
-                'press': 'Press Releases'
-            },
-            'contact': {
-                'info': 'Contact Information',
-                'location': 'Our Location',
-                'support': 'Get Support'
+                'events': 'Events',
+                'press': 'Announcements'
             }
         };
         
         return titles[section]?.[page] || 'Page Title';
+    }
+    
+    /**
+     * 한국어 페이지 제목 조회
+     */
+    getKoreanPageTitle(menuId, submenuId) {
+        const titles = {
+            'about': {
+                'welcome': '인사말',
+                'company': '학과개요',
+                'mission': '교육목표'
+            },
+            'research': {
+                'areas': '교육과정',
+                'projects': '학사과정',
+                'publications': '연구성과'
+            },
+            'services': {
+                'consulting': '입학안내',
+                'development': '지원절차',
+                'support': '학생지원'
+            },
+            'team': {
+                'leadership': '학생회',
+                'researchers': '학생활동',
+                'careers': '진로지도'
+            },
+            'portfolio': {
+                'case-studies': '자료실',
+                'clients': '양식',
+                'testimonials': '참고자료'
+            },
+            'news': {
+                'latest': '최신소식',
+                'events': '행사안내',
+                'press': '공지사항'
+            }
+        };
+        
+        return titles[menuId]?.[submenuId] || '페이지';
     }
     
     async animatePageTransition() {
@@ -1295,23 +1384,36 @@ class PreviewManager {
         console.log(`🔍 검토 모드: ${submenu.koreanTitle || submenu.title} 페이지 로드 중...`);
         
         try {
-            // Update URL display
+            // Update URL display first
             this.currentUrl = submenu.url || `/${menuId}/${submenuId}`;
             this.urlDisplay.textContent = `https://mysite.com${this.currentUrl}`;
             
-            // Add page transition animation
-            await this.animatePageTransition();
-            
             // Use ContentStorage to get actual generated content
             let reviewContent;
-            if (window.contentStorage) {
-                reviewContent = window.contentStorage.generatePageHTML(menuId, submenuId, submenu);
-            } else {
-                // Fallback to old template method
-                reviewContent = this.createReviewPageContent(menuId, submenuId, submenu);
+            
+            // ContentStorage가 없으면 생성
+            if (!window.contentStorage) {
+                console.log('🔄 ContentStorage 초기화');
+                window.contentStorage = new ContentStorage();
             }
             
-            // Load content into iframe
+            const pageId = `${menuId}/${submenuId}`;
+            const storedContent = window.contentStorage.getGeneratedContent(pageId);
+            
+            console.log(`🔍 저장된 콘텐츠 확인 [${pageId}]:`, storedContent ? '✅ 있음' : '❌ 없음');
+            
+            if (storedContent) {
+                console.log('📄 저장된 콘텐츠 상세:', {
+                    title: storedContent.content?.title,
+                    hasHtml: !!storedContent.content?.htmlContent,
+                    timestamp: storedContent.timestamp
+                });
+            }
+            
+            reviewContent = window.contentStorage.generatePageHTML(menuId, submenuId, submenu);
+            console.log('📝 생성된 HTML 길이:', reviewContent ? reviewContent.length : 0);
+            
+            // 즉시 콘텐츠 로드 (애니메이션 없이)
             this.iframe.srcdoc = reviewContent;
             
             // Apply zoom
@@ -1319,7 +1421,8 @@ class PreviewManager {
             
             // Add smooth load animations after content loads
             this.iframe.onload = () => {
-                this.addReviewModeAnimations();
+                // 페이지 로드 후 부드러운 fade-in 효과만 적용
+                this.addQuickFadeInAnimation();
                 console.log(`✅ 검토 페이지 로드 완료: ${submenu.koreanTitle || submenu.title}`);
             };
             
@@ -1327,7 +1430,7 @@ class PreviewManager {
             console.error('❌ 검토 페이지 로드 실패:', error);
             
             // Fallback to template content
-            const fallbackContent = this.createTemplateContent(this.currentUrl);
+            const fallbackContent = this.createTemplateContentFromURL(this.currentUrl);
             this.iframe.srcdoc = fallbackContent;
             this.applyZoom();
         }
@@ -1971,6 +2074,29 @@ class PreviewManager {
             });
             
             console.log('✨ 검토 모드 애니메이션 적용 완료');
+        }
+    }
+    
+    /**
+     * 빠른 fade-in 애니메이션 (완료된 페이지용)
+     */
+    addQuickFadeInAnimation() {
+        if (this.iframe && this.iframe.contentDocument) {
+            const doc = this.iframe.contentDocument;
+            const browserContent = document.querySelector('.browser-content');
+            
+            // iframe 전체에 빠른 fade-in 적용
+            if (browserContent) {
+                browserContent.style.opacity = '0';
+                browserContent.style.transition = 'opacity 0.3s ease';
+                
+                // 즉시 보이게 하기
+                requestAnimationFrame(() => {
+                    browserContent.style.opacity = '1';
+                });
+            }
+            
+            console.log('✨ 빠른 페이드인 애니메이션 적용 완료');
         }
     }
 }

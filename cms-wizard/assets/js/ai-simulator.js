@@ -444,7 +444,9 @@ class AISimulator {
         }
         
         // 7. 생성 완료 즉시 CMS에 저장
-        await this.saveGeneratedContentToCMS(pageData, contentArea.innerHTML);
+        // cms-content 영역만 추출하여 저장 (새로운 아키텍처)
+        const cmsContentHTML = contentArea.innerHTML;
+        await this.saveGeneratedContentToCMS(pageData, cmsContentHTML, contentData);
     }
     
     // Wait for iframe to be ready and return document
@@ -1297,22 +1299,24 @@ class AISimulator {
     /**
      * 생성된 콘텐츠를 ContentStorage에 저장
      */
-    async saveGeneratedContentToCMS(pageData, htmlContent) {
+    async saveGeneratedContentToCMS(pageData, cmsContentHTML, contentData) {
         const { menu, submenu } = pageData;
         const pageId = `${menu.id}/${submenu.id}`;
         
         try {
-            console.log('💾 생성된 콘텐츠 저장 중...', pageId);
+            console.log('💾 생성된 CMS 콘텐츠 저장 중...', pageId);
             
-            // ContentStorage에 저장할 데이터 준비
-            const contentData = this.contentDatabase[menu.id]?.[submenu.id];
-            if (contentData && window.contentStorage) {
-                const result = window.contentStorage.storeGeneratedContent(pageId, {
-                    title: contentData.title,
-                    subtitle: contentData.subtitle,
-                    mainContent: contentData.content,
-                    features: contentData.features,
-                    processingTime: Math.floor(Math.random() * 5) + 2, // 시뮬레이션된 처리 시간
+            // ContentStorage에 저장할 데이터 준비 (cms-content 영역만)
+            const finalContentData = contentData || this.contentDatabase[menu.id]?.[submenu.id];
+            if (finalContentData && window.contentStorage) {
+                // ContentStorage의 새로운 아키텍처에 맞게 저장
+                const result = await window.contentStorage.storeGeneratedContent(pageId, {
+                    title: finalContentData.title,
+                    subtitle: finalContentData.subtitle,
+                    mainContent: finalContentData.content,
+                    features: finalContentData.features,
+                    processingTime: Math.floor(Math.random() * 5) + 2,
+                    cmsContentHTML: cmsContentHTML, // cms-content 영역 HTML만 저장
                     metadata: {
                         menuId: menu.id,
                         submenuId: submenu.id,
@@ -1322,7 +1326,7 @@ class AISimulator {
                 });
                 
                 this.showSaveSuccessMessage(pageId, { success: true, mode: 'simulation' });
-                console.log('✅ ContentStorage 저장 완료:', result.timestamp);
+                console.log('✅ ContentStorage 저장 완료:', pageId, result);
             } else {
                 throw new Error('ContentStorage가 초기화되지 않았거나 콘텐츠 데이터가 없습니다');
             }

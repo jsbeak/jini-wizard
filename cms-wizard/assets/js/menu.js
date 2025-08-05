@@ -101,8 +101,8 @@ class MenuManager {
         const submenuClickHandler = () => {
             if (!this.isDestroyed) {
                 if (this.reviewMode && submenu.status === 'completed') {
-                    // In review mode, load completed page
-                    this.loadCompletedPage(menuId, submenu.id, submenu);
+                    // In review mode, load completed page immediately
+                    this.loadCompletedPageImmediate(menuId, submenu.id, submenu);
                 } else if (submenu.status === 'completed' && !this.reviewMode) {
                     // During generation, just preview completed pages
                     if (this.app.previewManager && this.app.previewManager.loadPage) {
@@ -356,6 +356,15 @@ class MenuManager {
             item.style.cursor = 'pointer';
             item.style.opacity = '1';
             
+            // 저장된 콘텐츠 확인
+            const menuId = item.getAttribute('data-menu-id');
+            const submenuId = item.getAttribute('data-submenu-id');
+            if (menuId && submenuId && window.contentStorage) {
+                const pageId = `${menuId}/${submenuId}`;
+                const hasContent = window.contentStorage.getGeneratedContent(pageId);
+                console.log(`📄 콘텐츠 확인 [${pageId}]:`, hasContent ? '✅ 있음' : '❌ 없음');
+            }
+            
             // Add visual indicator
             if (!item.querySelector('.review-indicator')) {
                 const indicator = document.createElement('span');
@@ -441,5 +450,54 @@ class MenuManager {
         
         // Show review toast
         this.app.showToast(`"${submenu.koreanTitle || submenu.title}" 페이지를 검토 중입니다`, 'info');
+    }
+    
+    /**
+     * 완료된 페이지를 즉시 로드 (애니메이션 없이)
+     */
+    loadCompletedPageImmediate(menuId, submenuId, submenu) {
+        console.log(`⚡ 즉시 로드: ${submenu.koreanTitle || submenu.title} 페이지`);
+        
+        // Highlight current selection
+        document.querySelectorAll('.submenu-item').forEach(item => {
+            item.classList.remove('current-review');
+        });
+        
+        const currentItem = document.querySelector(`[data-menu-id="${menuId}"][data-submenu-id="${submenuId}"]`);
+        if (currentItem) {
+            currentItem.classList.add('current-review');
+        }
+        
+        // 즉시 페이지 로드 (애니메이션 없이)
+        if (this.app.previewManager) {
+            // URL 먼저 업데이트
+            const url = submenu.url || `/${menuId}/${submenuId}`;
+            this.app.previewManager.currentUrl = url;
+            this.app.previewManager.urlDisplay.textContent = `https://mysite.com${url}`;
+            
+            // ContentStorage를 사용해 즉시 HTML 생성 및 로드
+            if (!window.contentStorage) {
+                window.contentStorage = new ContentStorage();
+            }
+            
+            const reviewContent = window.contentStorage.generatePageHTML(menuId, submenuId, submenu);
+            this.app.previewManager.iframe.srcdoc = reviewContent;
+            this.app.previewManager.applyZoom();
+        }
+        
+        // Update status message
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+            statusMessage.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; color: #6366F1;">
+                    <span style="font-size: 14px;">👁️ 검토 중: ${submenu.koreanTitle || submenu.title}</span>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    생성된 콘텐츠를 확인하고 있습니다
+                </div>
+            `;
+        }
+        
+        console.log(`✅ 즉시 로드 완료: ${submenu.koreanTitle || submenu.title}`);
     }
 }

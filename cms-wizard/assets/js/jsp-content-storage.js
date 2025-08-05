@@ -184,6 +184,13 @@ class JSPContentStorage extends ContentStorage {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
+            // 응답 콘텐츠 타입 확인
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('⚠️ 서버가 HTML을 반환했습니다. JSP 설정을 확인해주세요.');
+                return null; // JSP 서버가 제대로 설정되지 않은 경우
+            }
+            
             const result = await response.json();
             
             if (!result.success || !result.data.page) {

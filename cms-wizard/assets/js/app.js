@@ -11,6 +11,8 @@ class CMSWizardApp {
         this.startTime = Date.now();
         this.isProcessing = false;
         this.timer = null;
+        this.isReviewMode = false; // 리뷰 모드 상태 추가
+        this.isCompleted = false; // 생성 완료 상태 추가
         
         // Initialize JSP ContentStorage (하이브리드 모드)
         if (window.jspContentStorage) {
@@ -337,6 +339,13 @@ class CMSWizardApp {
         // Simulate AI content generation
         await this.aiSimulator.generateContent(nextPage);
         
+        // 콘텐츠 저장 확인
+        const pageId = `${nextPage.menu.id}/${nextPage.submenu.id}`;
+        if (window.contentStorage) {
+            const savedContent = window.contentStorage.getGeneratedContent(pageId);
+            console.log(`📊 페이지 생성 완료 [${pageId}]:`, savedContent ? '✅ 저장됨' : '❌ 저장 실패');
+        }
+        
         // Mark as completed
         this.menuManager.setPageStatus(nextPage.menu.id, nextPage.submenu.id, 'completed');
         this.completedPages++;
@@ -522,6 +531,14 @@ class CMSWizardApp {
     }
     
     completeWizard() {
+        // 이미 완료된 경우 중복 실행 방지
+        if (this.isCompleted) {
+            console.log('⚠️ 이미 생성이 완료되었습니다.');
+            return;
+        }
+        
+        this.isCompleted = true; // 완료 상태 설정
+        
         if (this.timer) {
             clearInterval(this.timer);
         }
@@ -537,14 +554,16 @@ class CMSWizardApp {
         const totalTime = Date.now() - this.startTime;
         const avgTime = Math.round(totalTime / this.totalPages / 1000);
         
-        // Show completion screen
-        this.showCompletionScreen(totalTime, avgTime);
-        
-        // Create confetti effect
-        this.createConfetti();
-        
-        // Show completion toast
-        this.showToast('모든 페이지 생성이 완료되었습니다!', 'success', 5000);
+        // Show completion screen only if not in review mode
+        if (!this.isReviewMode) {
+            this.showCompletionScreen(totalTime, avgTime);
+            
+            // Create confetti effect
+            this.createConfetti();
+            
+            // Show completion toast
+            this.showToast('모든 페이지 생성이 완료되었습니다!', 'success', 5000);
+        }
     }
     
     showCompletionScreen(totalTime, avgTime) {
@@ -824,6 +843,9 @@ class CMSWizardApp {
     // Review mode - 완료 후 페이지 검토 모드
     enterReviewMode() {
         console.log('📋 검토 모드 진입');
+        
+        // 리뷰 모드 상태 설정
+        this.isReviewMode = true;
         
         // Hide completion screen
         const completionScreen = document.getElementById('completion-screen');
