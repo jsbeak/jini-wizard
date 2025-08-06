@@ -1,6 +1,16 @@
-<%@ page contentType="application/json; charset=UTF-8" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="java.io.*, java.util.*, java.text.SimpleDateFormat" %>
 <%@ include file="utils/FileUtils.jsp" %>
+
+<%!
+// 파일 크기 포맷팅 함수
+public String formatFileSize(long bytes) {
+    if (bytes < 1024) return bytes + " B";
+    int exp = (int) (Math.log(bytes) / Math.log(1024));
+    String pre = "KMGTPE".charAt(exp - 1) + "";
+    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+}
+%>
 
 <%
 /**
@@ -28,7 +38,7 @@ if ("OPTIONS".equals(request.getMethod())) {
 try {
     // GET 요청만 허용
     if (!"GET".equals(request.getMethod())) {
-        out.print(FileUtils.createErrorResponse("잘못된 요청 방식", "GET 요청만 허용됩니다."));
+        out.print(fileUtils.createErrorResponse("잘못된 요청 방식", "GET 요청만 허용됩니다."));
         return;
     }
     
@@ -48,20 +58,25 @@ try {
         order = "asc";
     }
     
+    // final 변수로 복사 (익명 클래스에서 사용하기 위해)
+    final String finalSortBy = sortBy;
+    final String finalOrder = order;
+    final boolean finalIncludeStats = includeStats;
+    
     // 사이트 목록 조회
-    List<String> siteIds = FileUtils.listSites(application);
+    List<String> siteIds = fileUtils.listSites(application);
     List<Map<String, Object>> sitesData = new ArrayList<>();
     
     for (String siteId : siteIds) {
         Map<String, Object> siteData = new HashMap<>();
         siteData.put("siteId", siteId);
         
-        String sitePath = FileUtils.getSitePath(application, siteId);
+        String sitePath = fileUtils.getSitePath(application, siteId);
         
         // 사이트 정보 포함
         if (includeSiteInfo) {
             String siteInfoPath = sitePath + File.separator + "site-info.json";
-            Map<String, Object> siteInfo = FileUtils.readJsonFile(siteInfoPath);
+            Map<String, Object> siteInfo = fileUtils.readJsonFile(siteInfoPath);
             if (siteInfo != null) {
                 siteData.put("siteInfo", siteInfo);
                 siteData.put("siteName", siteInfo.get("siteName"));
@@ -83,7 +98,7 @@ try {
             Map<String, Object> stats = new HashMap<>();
             
             // 메뉴 수 계산
-            List<String> menus = FileUtils.listMenus(application, siteId);
+            List<String> menus = fileUtils.listMenus(application, siteId);
             stats.put("totalMenus", menus.size());
             
             // 총 페이지 수 계산
@@ -92,16 +107,21 @@ try {
                 String menuPath = sitePath + File.separator + menuId;
                 File menuDir = new File(menuPath);
                 if (menuDir.exists() && menuDir.isDirectory()) {
-                    File[] submenuDirs = menuDir.listFiles(File::isDirectory);
+                    File[] submenuDirs = menuDir.listFiles();
                     if (submenuDirs != null) {
-                        totalPages += submenuDirs.length;
+                        // 디렉토리만 카운트 (File::isDirectory 대신 전통적인 방식 사용)
+                        for (File f : submenuDirs) {
+                            if (f.isDirectory()) {
+                                totalPages++;
+                            }
+                        }
                     }
                 }
             }
             stats.put("totalPages", totalPages);
             
             // 폴더 크기
-            long siteSize = FileUtils.calculateDirectorySize(sitePath);
+            long siteSize = fileUtils.calculateDirectorySize(sitePath);
             stats.put("totalSize", siteSize);
             stats.put("totalSizeFormatted", formatFileSize(siteSize));
             
@@ -111,51 +131,53 @@ try {
         sitesData.add(siteData);
     }
     
-    // 정렬 적용
-    sitesData.sort((a, b) -> {
-        int result = 0;
-        
-        switch (sortBy.toLowerCase()) {
-            case "name":
-                String nameA = (String) a.get("siteId");
-                String nameB = (String) b.get("siteId");
-                result = nameA.compareToIgnoreCase(nameB);
-                break;
-                
-            case "created":
-                if (a.get("siteInfo") != null && b.get("siteInfo") != null) {
-                    Map<String, Object> infoA = (Map<String, Object>) a.get("siteInfo");
-                    Map<String, Object> infoB = (Map<String, Object>) b.get("siteInfo");
-                    String createdA = (String) infoA.get("createdAt");
-                    String createdB = (String) infoB.get("createdAt");
-                    if (createdA != null && createdB != null) {
-                        result = createdA.compareTo(createdB);
+    // 정렬 적용 (람다 대신 전통적인 Comparator 사용)
+    Collections.sort(sitesData, new Comparator<Map<String, Object>>() {
+        public int compare(Map<String, Object> a, Map<String, Object> b) {
+            int result = 0;
+            
+            switch (finalSortBy.toLowerCase()) {
+                case "name":
+                    String nameA = (String) a.get("siteId");
+                    String nameB = (String) b.get("siteId");
+                    result = nameA.compareToIgnoreCase(nameB);
+                    break;
+                    
+                case "created":
+                    if (a.get("siteInfo") != null && b.get("siteInfo") != null) {
+                        Map<String, Object> infoA = (Map<String, Object>) a.get("siteInfo");
+                        Map<String, Object> infoB = (Map<String, Object>) b.get("siteInfo");
+                        String createdA = (String) infoA.get("createdAt");
+                        String createdB = (String) infoB.get("createdAt");
+                        if (createdA != null && createdB != null) {
+                            result = createdA.compareTo(createdB);
+                        }
                     }
-                }
-                break;
-                
-            case "modified":
-                String modifiedA = (String) a.get("lastModified");
-                String modifiedB = (String) b.get("lastModified");
-                if (modifiedA != null && modifiedB != null) {
-                    result = modifiedA.compareTo(modifiedB);
-                }
-                break;
-                
-            case "size":
-                if (includeStats) {
-                    Map<String, Object> statsA = (Map<String, Object>) a.get("stats");
-                    Map<String, Object> statsB = (Map<String, Object>) b.get("stats");
-                    if (statsA != null && statsB != null) {
-                        Long sizeA = ((Number) statsA.get("totalSize")).longValue();
-                        Long sizeB = ((Number) statsB.get("totalSize")).longValue();
-                        result = Long.compare(sizeA, sizeB);
+                    break;
+                    
+                case "modified":
+                    String modifiedA = (String) a.get("lastModified");
+                    String modifiedB = (String) b.get("lastModified");
+                    if (modifiedA != null && modifiedB != null) {
+                        result = modifiedA.compareTo(modifiedB);
                     }
-                }
-                break;
+                    break;
+                    
+                case "size":
+                    if (finalIncludeStats) {
+                        Map<String, Object> statsA = (Map<String, Object>) a.get("stats");
+                        Map<String, Object> statsB = (Map<String, Object>) b.get("stats");
+                        if (statsA != null && statsB != null) {
+                            Long sizeA = ((Number) statsA.get("totalSize")).longValue();
+                            Long sizeB = ((Number) statsB.get("totalSize")).longValue();
+                            result = Long.compare(sizeA, sizeB);
+                        }
+                    }
+                    break;
+            }
+            
+            return "desc".equals(finalOrder) ? -result : result;
         }
-        
-        return "desc".equals(order) ? -result : result;
     });
     
     // 응답 데이터 구성
@@ -193,7 +215,7 @@ try {
     }
     
     // 성공 응답
-    out.print(FileUtils.createSuccessResponse("사이트 목록 조회 성공", responseData));
+    out.print(fileUtils.createSuccessResponse("사이트 목록 조회 성공", responseData));
     
 } catch (Exception e) {
     // 예외 처리
@@ -205,15 +227,7 @@ try {
     System.err.println("list-sites.jsp 오류: " + e.getMessage());
     System.err.println("Stack trace: " + stackTrace);
     
-    out.print(FileUtils.createErrorResponse("서버 내부 오류", 
+    out.print(fileUtils.createErrorResponse("서버 내부 오류", 
         "사이트 목록 조회 중 오류가 발생했습니다: " + e.getMessage()));
-}
-
-// 파일 크기 포맷팅 함수
-String formatFileSize(long bytes) {
-    if (bytes < 1024) return bytes + " B";
-    int exp = (int) (Math.log(bytes) / Math.log(1024));
-    String pre = "KMGTPE".charAt(exp - 1) + "";
-    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
 }
 %>

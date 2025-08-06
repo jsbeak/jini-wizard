@@ -6,6 +6,7 @@ class PreviewManager {
         this.urlDisplay = document.getElementById('browser-url-text');
         this.currentZoom = 100;
         this.currentUrl = '';
+        this.currentPageForReview = null; // Store current page info for regeneration
         
         // ContentStorage 초기화
         this.initializeContentStorage();
@@ -27,6 +28,10 @@ class PreviewManager {
         this.currentUrl = url;
         this.urlDisplay.textContent = `https://mysite.com${url}`;
         
+        // Clear review mode state when loading regular pages
+        this.currentPageForReview = null;
+        this.hideRegenerateButton();
+        
         // Show blank page ready for AI typing
         if (showBlankForAI) {
             const blankContent = this.createBlankPageForTyping();
@@ -45,7 +50,7 @@ class PreviewManager {
         await this.animatePageTransition();
         
         // ContentStorage를 사용하여 템플릿 페이지 생성
-        const pageContent = this.createTemplateContentFromURL(url);
+        const pageContent = await this.createTemplateContentFromURL(url);
         
         // Load content into iframe
         this.iframe.srcdoc = pageContent;
@@ -224,7 +229,7 @@ class PreviewManager {
     /**
      * URL로부터 템플릿 콘텐츠 생성 (ContentStorage 사용)
      */
-    createTemplateContentFromURL(url) {
+    async createTemplateContentFromURL(url) {
         // URL에서 페이지 정보 추출
         const parts = url.split('/').filter(p => p);
         const menuId = parts[0] || 'about';
@@ -238,7 +243,7 @@ class PreviewManager {
         };
         
         // ContentStorage를 사용하여 페이지 HTML 생성
-        return this.contentStorage.generatePageHTML(menuId, submenuId, submenu);
+        return await this.contentStorage.generatePageHTML(menuId, submenuId, submenu);
     }
     
     /**
@@ -1388,6 +1393,9 @@ class PreviewManager {
             this.currentUrl = submenu.url || `/${menuId}/${submenuId}`;
             this.urlDisplay.textContent = `https://mysite.com${this.currentUrl}`;
             
+            // Store current page info for regeneration
+            this.currentPageForReview = { menuId, submenuId, submenu };
+            
             // Use ContentStorage to get actual generated content
             let reviewContent;
             
@@ -1398,7 +1406,9 @@ class PreviewManager {
             }
             
             const pageId = `${menuId}/${submenuId}`;
-            const storedContent = window.contentStorage.getGeneratedContent(pageId);
+            
+            // 먼저 서버에서 콘텐츠를 가져옴 (await 중요!)
+            const storedContent = await window.contentStorage.getGeneratedContent(pageId);
             
             console.log(`🔍 저장된 콘텐츠 확인 [${pageId}]:`, storedContent ? '✅ 있음' : '❌ 없음');
             
@@ -1408,9 +1418,17 @@ class PreviewManager {
                     hasHtml: !!storedContent.content?.htmlContent,
                     timestamp: storedContent.timestamp
                 });
+                
+                // 서버에서 가져온 콘텐츠를 템플릿에 적용
+                // 항상 템플릿 기반 generatePageHTML 사용 (템플릿이 로드되어 있음)
+                reviewContent = await window.contentStorage.generatePageHTML(menuId, submenuId, submenu);
+                console.log('✅ 템플릿 기반 페이지 생성 (서버 콘텐츠 포함)');
+            } else {
+                // 서버에 콘텐츠가 없어도 템플릿 사용
+                reviewContent = await window.contentStorage.generatePageHTML(menuId, submenuId, submenu);
+                console.log('⚠️ 서버 콘텐츠 없음 - 템플릿 사용');
             }
             
-            reviewContent = window.contentStorage.generatePageHTML(menuId, submenuId, submenu);
             console.log('📝 생성된 HTML 길이:', reviewContent ? reviewContent.length : 0);
             
             // 즉시 콘텐츠 로드 (애니메이션 없이)
@@ -1419,21 +1437,285 @@ class PreviewManager {
             // Apply zoom
             this.applyZoom();
             
-            // Add smooth load animations after content loads
+            // iframe 로드 완료 후 재생성 버튼 표시
             this.iframe.onload = () => {
                 // 페이지 로드 후 부드러운 fade-in 효과만 적용
                 this.addQuickFadeInAnimation();
                 console.log(`✅ 검토 페이지 로드 완료: ${submenu.koreanTitle || submenu.title}`);
+                console.log('🔍 현재 currentPageForReview 상태:', this.currentPageForReview);
+                
+                // 재생성 버튼 표시 - iframe 로드 완료 후에 실행
+                setTimeout(() => {
+                    console.log('🔄 재생성 버튼 표시 시도 (지연 실행)');
+                    console.log('🔍 showRegenerateButton 호출 전 상태:', {
+                        currentPageForReview: this.currentPageForReview,
+                        shouldShow: this.shouldShowRegenerateButton()
+                    });
+                    this.showRegenerateButton();
+                }, 200); // 약간 더 긴 지연 후 실행
             };
             
         } catch (error) {
             console.error('❌ 검토 페이지 로드 실패:', error);
             
             // Fallback to template content
-            const fallbackContent = this.createTemplateContentFromURL(this.currentUrl);
+            const fallbackContent = await this.createTemplateContentFromURL(this.currentUrl);
             this.iframe.srcdoc = fallbackContent;
             this.applyZoom();
+            
+            // Still show regenerate button even for fallback
+            this.showRegenerateButton();
         }
+    }
+    
+    /**
+     * Get page styles for generated content
+     */
+    getPageStyles() {
+        return `
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    background-color: #f9fafb;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                }
+                
+                .container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 0 2rem;
+                }
+                
+                /* Generated Content Banner */
+                .generated-banner {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    padding: 8px 0;
+                    text-align: center;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    position: sticky;
+                    top: 0;
+                    z-index: 200;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                
+                /* Header */
+                .header {
+                    background: #fff;
+                    padding: 20px 0;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    position: sticky;
+                    top: 32px;
+                    z-index: 100;
+                }
+                
+                .nav {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .logo {
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #166534;
+                    display: flex;
+                    align-items: center;
+                }
+                
+                .nav-menu {
+                    display: flex;
+                    list-style: none;
+                    gap: 30px;
+                }
+                
+                .nav-menu a {
+                    text-decoration: none;
+                    color: #666;
+                    transition: color 0.3s;
+                }
+                
+                .nav-menu a:hover,
+                .nav-menu a.active {
+                    color: #166534;
+                }
+                
+                /* Hero Section */
+                .hero {
+                    background: linear-gradient(135deg, #166534 0%, #15803d 100%);
+                    color: white;
+                    padding: 80px 0;
+                    text-align: center;
+                }
+                
+                .hero h1 {
+                    font-size: 48px;
+                    margin-bottom: 20px;
+                }
+                
+                .hero p {
+                    font-size: 20px;
+                }
+                
+                /* Content */
+                .content {
+                    padding: 60px 0;
+                    background: white;
+                    flex: 1;
+                }
+                
+                .breadcrumb {
+                    display: flex;
+                    gap: 8px;
+                    font-size: 14px;
+                    color: #666;
+                    margin-bottom: 30px;
+                    align-items: center;
+                }
+                
+                .breadcrumb span:last-child {
+                    color: #166534;
+                    font-weight: 500;
+                }
+                
+                .content h2 {
+                    font-size: 36px;
+                    margin-bottom: 30px;
+                    color: #333;
+                }
+                
+                .content p {
+                    font-size: 18px;
+                    color: #666;
+                    margin-bottom: 20px;
+                    line-height: 1.8;
+                }
+                
+                .image-placeholder {
+                    width: 100%;
+                    height: 300px;
+                    background: linear-gradient(45deg, #f0f0f0 25%, #e0e0e0 25%, #e0e0e0 50%, #f0f0f0 50%, #f0f0f0 75%, #e0e0e0 75%, #e0e0e0);
+                    background-size: 20px 20px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #999;
+                    font-size: 18px;
+                    margin: 20px 0;
+                }
+                
+                .grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 30px;
+                    margin-top: 40px;
+                }
+                
+                .card {
+                    background: #f8f9fa;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    transition: transform 0.3s;
+                }
+                
+                .card:hover {
+                    transform: translateY(-5px);
+                }
+                
+                .card h3 {
+                    margin-bottom: 15px;
+                    color: #333;
+                }
+            </style>
+        `;
+    }
+    
+    /**
+     * Create full page from stored content
+     */
+    createFullPageFromStoredContent(storedContent, menuId, submenuId, submenu) {
+        const pageTitle = storedContent.content?.title || submenu.koreanTitle || submenu.title;
+        const pageSubtitle = storedContent.content?.subtitle || '학과 소개 페이지입니다';
+        const cmsContent = storedContent.content?.htmlContent || '';
+        const sectionTitle = this.getSectionTitle(menuId);
+        
+        return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${pageTitle} - 이화여자대학교</title>
+                ${this.getPageStyles()}
+            </head>
+            <body>
+                <!-- Generated Content Banner -->
+                <div class="generated-banner">
+                    <span class="icon">✨</span>
+                    <span>AI가 생성한 콘텐츠입니다</span>
+                </div>
+                
+                <!-- Header -->
+                <header class="header">
+                    <div class="container">
+                        <nav class="nav">
+                            <div class="logo">
+                                <img src="data:image/svg+xml,%3Csvg viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='18' fill='%23166534' stroke='%23ffffff' stroke-width='2'/%3E%3Ctext x='20' y='25' text-anchor='middle' fill='white' font-size='12' font-weight='bold'%3E이화%3C/text%3E%3C/svg%3E" alt="이화여대" style="width: 40px; height: 40px; margin-right: 12px;">
+                                이화여자대학교 사회복지학과
+                            </div>
+                            <ul class="nav-menu">
+                                <li><a href="/about" class="${menuId === 'about' ? 'active' : ''}">학과소개</a></li>
+                                <li><a href="/research" class="${menuId === 'research' ? 'active' : ''}">학사정보</a></li>
+                                <li><a href="/services" class="${menuId === 'services' ? 'active' : ''}">입학정보</a></li>
+                                <li><a href="/team" class="${menuId === 'team' ? 'active' : ''}">학생활동</a></li>
+                                <li><a href="/portfolio" class="${menuId === 'portfolio' ? 'active' : ''}">자료실</a></li>
+                                <li><a href="/news" class="${menuId === 'news' ? 'active' : ''}">커뮤니티</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </header>
+                
+                <!-- Hero Section -->
+                <section class="hero">
+                    <div class="container">
+                        <h1 class="page-title">${pageTitle}</h1>
+                        <p class="page-subtitle">${pageSubtitle}</p>
+                    </div>
+                </section>
+                
+                <!-- Main Content Area -->
+                <section class="content">
+                    <div class="container">
+                        <div class="breadcrumb">
+                            <span>🏠 홈</span>
+                            <span>›</span>
+                            <span>${sectionTitle}</span>
+                            <span>›</span>
+                            <span>${pageTitle}</span>
+                        </div>
+                        
+                        <!-- CMS Content Area -->
+                        <div id="cms-content">
+                            ${cmsContent}
+                        </div>
+                    </div>
+                </section>
+            </body>
+            </html>
+        `;
     }
     
     /**
@@ -2097,6 +2379,568 @@ class PreviewManager {
             }
             
             console.log('✨ 빠른 페이드인 애니메이션 적용 완료');
+        }
+    }
+    
+    /**
+     * Show regenerate content button for review mode
+     */
+    showRegenerateButton() {
+        console.log('🔄 재생성 버튼 표시 시도:', {
+            currentPageForReview: this.currentPageForReview,
+            shouldShow: this.shouldShowRegenerateButton()
+        });
+        
+        // 완료된 페이지에서만 재생성 버튼 표시
+        if (!this.shouldShowRegenerateButton()) {
+            console.log('❌ 재생성 버튼 표시 조건 불충족');
+            return;
+        }
+        
+        console.log('✅ 재생성 버튼 표시 조건 충족');
+        
+        // Remove existing button if any
+        this.hideRegenerateButton();
+        
+        // Create regenerate button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.id = 'regenerate-button-container';
+        console.log('🔧 재생성 버튼 컨테이너 생성 중...');
+        buttonContainer.style.cssText = `
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        `;
+        
+        // Create regenerate button
+        const regenerateBtn = document.createElement('button');
+        regenerateBtn.innerHTML = `
+            <span style="margin-right: 8px;">🔄</span>
+            <span>콘텐츠 재생성</span>
+        `;
+        regenerateBtn.style.cssText = `
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 140px;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        `;
+        
+        // Add hover effects
+        regenerateBtn.addEventListener('mouseenter', () => {
+            regenerateBtn.style.transform = 'translateY(-2px)';
+            regenerateBtn.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.4)';
+        });
+        
+        regenerateBtn.addEventListener('mouseleave', () => {
+            regenerateBtn.style.transform = 'translateY(0)';
+            regenerateBtn.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.3)';
+        });
+        
+        // Add click handler
+        regenerateBtn.addEventListener('click', () => this.handleRegenerateContent());
+        
+        // Create info tooltip
+        const infoTooltip = document.createElement('div');
+        infoTooltip.innerHTML = `
+            <div style="font-size: 12px; color: #6b7280; text-align: center; line-height: 1.4;">
+                <span style="color: #10b981;">✨</span> 현재 콘텐츠가<br>마음에 들지 않으세요?
+            </div>
+        `;
+        infoTooltip.style.cssText = `
+            background: rgba(249, 250, 251, 0.9);
+            border-radius: 8px;
+            padding: 8px 10px;
+            border: 1px solid #e5e7eb;
+        `;
+        
+        // Create close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        `;
+        
+        closeBtn.addEventListener('mouseenter', () => {
+            closeBtn.style.background = '#dc2626';
+            closeBtn.style.transform = 'scale(1.1)';
+        });
+        
+        closeBtn.addEventListener('mouseleave', () => {
+            closeBtn.style.background = '#ef4444';
+            closeBtn.style.transform = 'scale(1)';
+        });
+        
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.hideRegenerateButton();
+        });
+        
+        // Assemble the button
+        buttonContainer.appendChild(closeBtn);
+        buttonContainer.appendChild(regenerateBtn);
+        buttonContainer.appendChild(infoTooltip);
+        
+        // Add to page
+        document.body.appendChild(buttonContainer);
+        console.log('✅ 재생성 버튼을 DOM에 추가했습니다');
+        
+        // Animate in
+        requestAnimationFrame(() => {
+            buttonContainer.style.opacity = '1';
+            buttonContainer.style.transform = 'translateX(0)';
+            console.log('✨ 재생성 버튼 애니메이션 시작');
+        });
+        
+        console.log('🔄 콘텐츠 재생성 버튼 표시 완료');
+    }
+    
+    /**
+     * Hide regenerate content button
+     */
+    hideRegenerateButton() {
+        const existingButton = document.getElementById('regenerate-button-container');
+        if (existingButton) {
+            existingButton.style.opacity = '0';
+            existingButton.style.transform = 'translateX(20px)';
+            
+            setTimeout(() => {
+                if (existingButton.parentNode) {
+                    existingButton.parentNode.removeChild(existingButton);
+                }
+            }, 300);
+        }
+    }
+    
+    /**
+     * Handle regenerate content button click
+     */
+    async handleRegenerateContent() {
+        console.log('🔄 재생성 버튼 클릭 - 현재 페이지 정보:', this.currentPageForReview);
+        
+        if (!this.currentPageForReview) {
+            console.error('❌ 재생성할 페이지 정보가 없습니다');
+            console.log('🔍 디버깅 정보:', {
+                currentPageForReview: this.currentPageForReview,
+                currentUrl: this.currentUrl,
+                previewManager: this
+            });
+            this.app.showToast('재생성할 페이지 정보를 찾을 수 없습니다.', 'error');
+            return;
+        }
+        
+        const { menuId, submenuId, submenu } = this.currentPageForReview;
+        const pageId = `${menuId}/${submenuId}`;
+        
+        console.log(`🔄 콘텐츠 재생성 시작: ${submenu.koreanTitle || submenu.title}`);
+        
+        try {
+            // Show regenerating state
+            this.showRegeneratingState();
+            
+            // Use JSPContentStorage regenerateContent if available
+            if (window.contentStorage && typeof window.contentStorage.regenerateContent === 'function') {
+                console.log('🔄 JSPContentStorage를 사용한 재생성 시작');
+                
+                const success = await window.contentStorage.regenerateContent(pageId);
+                
+                if (success) {
+                    // Wait a bit for the regeneration to complete
+                    await this.sleep(2000);
+                    
+                    // Reload the page with new content
+                    console.log('✅ 콘텐츠 재생성 완료, 페이지 새로고침');
+                    await this.loadCompletedPageForReview(menuId, submenuId, submenu);
+                    
+                    this.app.showToast(`"${submenu.koreanTitle || submenu.title}" 콘텐츠가 성공적으로 재생성되었습니다.`, 'success');
+                } else {
+                    throw new Error('재생성 실패');
+                }
+            } else {
+                // Fallback: Manual regeneration simulation
+                console.log('🔄 시뮬레이션 모드에서 재생성 중...');
+                
+                await this.sleep(3000); // Simulate regeneration delay
+                
+                // Reload page (this will use existing or default content)
+                await this.loadCompletedPageForReview(menuId, submenuId, submenu);
+                
+                this.app.showToast(`"${submenu.koreanTitle || submenu.title}" 페이지를 새로고침했습니다.`, 'info');
+            }
+            
+        } catch (error) {
+            console.error('❌ 콘텐츠 재생성 실패:', error);
+            this.app.showToast('콘텐츠 재생성에 실패했습니다. 다시 시도해주세요.', 'error');
+            
+            // Hide regenerating state
+            this.hideRegeneratingState();
+        }
+    }
+    
+    /**
+     * Show regenerating state
+     */
+    showRegeneratingState() {
+        // Hide the regenerate button
+        this.hideRegenerateButton();
+        
+        // Show regenerating indicator
+        const indicator = document.createElement('div');
+        indicator.id = 'regenerating-indicator';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-width: 180px;
+        `;
+        
+        indicator.innerHTML = `
+            <div style="
+                width: 32px;
+                height: 32px;
+                border: 3px solid #e5e7eb;
+                border-top: 3px solid #6366f1;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            "></div>
+            <div style="
+                font-size: 14px;
+                font-weight: 600;
+                color: #6366f1;
+                text-align: center;
+            ">AI 재생성 중...</div>
+            <div style="
+                font-size: 12px;
+                color: #6b7280;
+                text-align: center;
+                line-height: 1.3;
+            ">새로운 콘텐츠를<br>생성하고 있습니다</div>
+        `;
+        
+        // Add spin animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(indicator);
+        
+        // Animate in
+        requestAnimationFrame(() => {
+            indicator.style.opacity = '1';
+            indicator.style.transform = 'translateX(0)';
+        });
+        
+        // Also update the iframe content to show regenerating state
+        if (this.iframe) {
+            const regeneratingContent = this.createRegeneratingContent();
+            this.iframe.srcdoc = regeneratingContent;
+            this.applyZoom();
+        }
+    }
+    
+    /**
+     * Hide regenerating state
+     */
+    hideRegeneratingState() {
+        const indicator = document.getElementById('regenerating-indicator');
+        if (indicator) {
+            indicator.style.opacity = '0';
+            indicator.style.transform = 'translateX(20px)';
+            
+            setTimeout(() => {
+                if (indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }, 300);
+        }
+    }
+    
+    /**
+     * Create regenerating content for iframe
+     */
+    createRegeneratingContent() {
+        const { menuId, submenuId, submenu } = this.currentPageForReview || {};
+        const pageTitle = submenu?.koreanTitle || submenu?.title || '콘텐츠 재생성';
+        
+        return `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>AI 재생성 중 - ${pageTitle}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        overflow: hidden;
+                    }
+                    
+                    .regenerating-container {
+                        text-align: center;
+                        max-width: 500px;
+                        padding: 2rem;
+                        background: rgba(255, 255, 255, 0.1);
+                        backdrop-filter: blur(10px);
+                        border-radius: 20px;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                    }
+                    
+                    .spinner {
+                        width: 80px;
+                        height: 80px;
+                        border: 4px solid rgba(255, 255, 255, 0.3);
+                        border-top: 4px solid white;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        margin: 0 auto 2rem;
+                    }
+                    
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    
+                    .title {
+                        font-size: 2rem;
+                        font-weight: 700;
+                        margin-bottom: 1rem;
+                        opacity: 0;
+                        animation: fadeInUp 0.8s ease 0.2s forwards;
+                    }
+                    
+                    .subtitle {
+                        font-size: 1.1rem;
+                        opacity: 0.9;
+                        margin-bottom: 2rem;
+                        line-height: 1.6;
+                        opacity: 0;
+                        animation: fadeInUp 0.8s ease 0.4s forwards;
+                    }
+                    
+                    .progress-steps {
+                        display: flex;
+                        justify-content: center;
+                        gap: 1rem;
+                        margin-top: 2rem;
+                    }
+                    
+                    .step {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 0.5rem;
+                        opacity: 0;
+                        animation: fadeInUp 0.6s ease forwards;
+                    }
+                    
+                    .step:nth-child(1) { animation-delay: 0.6s; }
+                    .step:nth-child(2) { animation-delay: 0.8s; }
+                    .step:nth-child(3) { animation-delay: 1s; }
+                    
+                    .step-icon {
+                        width: 40px;
+                        height: 40px;
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 1.2rem;
+                        transition: all 0.3s ease;
+                        animation: pulse 2s ease-in-out infinite;
+                    }
+                    
+                    .step-label {
+                        font-size: 0.875rem;
+                        opacity: 0.9;
+                    }
+                    
+                    @keyframes fadeInUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(30px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                    
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); opacity: 0.7; }
+                        50% { transform: scale(1.1); opacity: 1; }
+                    }
+                    
+                    .background-pattern {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        opacity: 0.1;
+                        background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.2) 0%, transparent 50%),
+                                          radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 50%);
+                        animation: drift 20s ease-in-out infinite alternate;
+                    }
+                    
+                    @keyframes drift {
+                        0% { transform: translateX(-10px) translateY(-10px); }
+                        100% { transform: translateX(10px) translateY(10px); }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="background-pattern"></div>
+                <div class="regenerating-container">
+                    <div class="spinner"></div>
+                    <h1 class="title">AI가 새로운 콘텐츠를 생성하고 있습니다</h1>
+                    <p class="subtitle">
+                        "${pageTitle}" 페이지의 콘텐츠를 더욱 흥미롭고 유용하게 재생성하고 있습니다.<br>
+                        잠시만 기다려주세요.
+                    </p>
+                    
+                    <div class="progress-steps">
+                        <div class="step">
+                            <div class="step-icon">🧠</div>
+                            <div class="step-label">AI 분석</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">✨</div>
+                            <div class="step-label">콘텐츠 생성</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">🎨</div>
+                            <div class="step-label">최적화</div>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
+    /**
+     * Check if regenerate button should be shown
+     */
+    shouldShowRegenerateButton() {
+        try {
+            console.log('🔍 재생성 버튼 표시 조건 확인 시작:', {
+                hasCurrentPageForReview: !!this.currentPageForReview,
+                currentPageForReviewData: this.currentPageForReview
+            });
+            
+            // 현재 페이지 정보가 있고 데이터가 있으면 표시
+            if (this.currentPageForReview) {
+                const { menuId, submenuId } = this.currentPageForReview;
+                const currentPageId = `${menuId}/${submenuId}`;
+                
+                // 간단한 조건: JSPContentStorage에서 데이터를 로드할 수 있으면 표시
+                const hasGeneratedContent = window.contentStorage?.generatedContent?.has(currentPageId);
+                
+                console.log('🔍 재생성 버튼 표시 조건 확인:', {
+                    currentPageId,
+                    hasCurrentPage: !!this.currentPageForReview,
+                    hasGeneratedContent,
+                    contentStorageExists: !!window.contentStorage,
+                    showButton: true // 데이터가 있는 페이지에서는 항상 표시
+                });
+                
+                return true; // 서버에서 로드된 페이지에서는 항상 재생성 가능
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('❌ 재생성 버튼 표시 조건 확인 실패:', error);
+            return true; // 오류 시에도 버튼은 표시
+        }
+    }
+    
+    /**
+     * Get current page ID
+     */
+    getCurrentPageId() {
+        try {
+            if (this.currentPageForReview) {
+                const { menuId, submenuId } = this.currentPageForReview;
+                return `${menuId}/${submenuId}`;
+            }
+            
+            // URL에서 추출 시도
+            const url = this.currentUrl || '';
+            const parts = url.split('/').filter(p => p);
+            if (parts.length >= 2) {
+                return `${parts[0]}/${parts[1]}`;
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('❌ 현재 페이지 ID 추출 실패:', error);
+            return null;
         }
     }
 }

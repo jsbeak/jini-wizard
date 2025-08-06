@@ -77,6 +77,7 @@ class CMSWizardApp {
             // Initialize components
             this.menuManager = new MenuManager(this.menuData, this);
             this.previewManager = new PreviewManager(this);
+            window.previewManager = this.previewManager; // 전역 접근을 위한 등록
             this.animator = new Animator();
             this.aiSimulator = new AISimulator(this);
             
@@ -350,6 +351,13 @@ class CMSWizardApp {
         this.menuManager.setPageStatus(nextPage.menu.id, nextPage.submenu.id, 'completed');
         this.completedPages++;
         this.updateProgress();
+        
+        // 생성 완료 시 리뷰 모드 활성화
+        if (this.completedPages >= this.totalPages) {
+            this.isCompleted = true;
+            this.isReviewMode = true;
+            console.log('✅ 모든 페이지 생성 완료 - 리뷰 모드 활성화');
+        }
         
         // Clean up any lingering pulse animations
         this.menuManager.cleanupPulseAnimations();
@@ -1412,5 +1420,118 @@ class CMSWizardApp {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    // 전역 객체로 등록
     window.cmsWizardApp = new CMSWizardApp();
+    window.app = window.cmsWizardApp; // 디버깅 및 접근성을 위한 별칭
+    
+    // 개발자 유틸리티 추가 (콘솔에서 사용 가능)
+    window.devUtils = {
+        // 즉시 리뷰 모드로 진입
+        enableReviewMode: () => {
+            console.log('🔄 리뷰 모드 강제 활성화...');
+            
+            // 모든 페이지를 완료 상태로 설정
+            if (window.app.menuData) {
+                let completedCount = 0;
+                
+                for (const menu of window.app.menuData.menus) {
+                    for (const submenu of menu.submenus) {
+                        if (submenu.status !== 'completed') {
+                            // 가짜 컨텐츠 생성 및 저장
+                            const pageId = `${menu.id}/${submenu.id}`;
+                            const fakeContent = {
+                                title: submenu.koreanTitle || submenu.title,
+                                subtitle: '테스트용 자동 생성 콘텐츠',
+                                mainContent: ['개발/테스트용 콘텐츠입니다.'],
+                                features: [{ title: '테스트', desc: '개발용 기능' }],
+                                cmsContentHTML: '<div><h2>' + (submenu.koreanTitle || submenu.title) + '</h2><p>테스트용 콘텐츠</p></div>',
+                                metadata: { testMode: true, generatedAt: new Date().toISOString() }
+                            };
+                            
+                            // 로컬 스토리지에 저장
+                            window.contentStorage?.storeGeneratedContent(pageId, fakeContent);
+                            
+                            // 메뉴 상태 업데이트
+                            window.app.menuManager?.setPageStatus(menu.id, submenu.id, 'completed');
+                            
+                            completedCount++;
+                        }
+                    }
+                }
+                
+                // 앱 상태 업데이트
+                window.app.completedPages = window.app.totalPages;
+                window.app.isCompleted = true;
+                window.app.isReviewMode = true;
+                window.app.updateProgress();
+                
+                console.log(`✅ ${completedCount}개 페이지 완료 처리 - 리뷰 모드 활성화됨`);
+                console.log('💡 이제 완료된 메뉴를 클릭하면 재생성 버튼이 나타납니다!');
+                
+                return { success: true, completedCount, message: '리뷰 모드가 활성화되었습니다' };
+            } else {
+                console.error('❌ 메뉴 데이터를 찾을 수 없습니다');
+                return { success: false, message: '메뉴 데이터 없음' };
+            }
+        },
+        
+        // 특정 페이지만 완료 처리
+        completePage: (menuId, submenuId) => {
+            const pageId = `${menuId}/${submenuId}`;
+            const fakeContent = {
+                title: `${menuId} - ${submenuId}`,
+                subtitle: '테스트용 콘텐츠',
+                mainContent: ['개발용 콘텐츠입니다.'],
+                features: [],
+                cmsContentHTML: `<div><h2>${pageId}</h2><p>테스트</p></div>`,
+                metadata: { testMode: true }
+            };
+            
+            window.contentStorage?.storeGeneratedContent(pageId, fakeContent);
+            window.app.menuManager?.setPageStatus(menuId, submenuId, 'completed');
+            
+            console.log(`✅ 페이지 완료: ${pageId}`);
+        },
+        
+        // 재생성 버튼 강제 표시
+        showRegenerateButton: () => {
+            if (window.previewManager?.showRegenerateButton) {
+                window.previewManager.showRegenerateButton();
+                console.log('🔄 재생성 버튼 강제 표시');
+            } else {
+                console.error('❌ PreviewManager를 찾을 수 없습니다');
+            }
+        },
+        
+        // 현재 상태 확인
+        checkStatus: () => {
+            const status = {
+                totalPages: window.app?.totalPages,
+                completedPages: window.app?.completedPages,
+                isCompleted: window.app?.isCompleted,
+                isReviewMode: window.app?.isReviewMode,
+                contentStorageType: window.contentStorage?.constructor.name,
+                serverAvailable: window.contentStorage?.serverAvailable
+            };
+            console.table(status);
+            return status;
+        }
+    };
+    
+    // 개발 모드에서 도움말 표시
+    if (window.location.hostname === 'localhost' || window.location.port === '8080') {
+        console.log(`
+🚀 개발자 유틸리티 활성화!
+
+📋 사용 가능한 명령어:
+• devUtils.enableReviewMode()     - 즉시 리뷰 모드 활성화
+• devUtils.completePage('about', 'welcome') - 특정 페이지 완료
+• devUtils.showRegenerateButton() - 재생성 버튼 강제 표시
+• devUtils.checkStatus()          - 현재 상태 확인
+
+🔗 테스트용 URL:
+• http://localhost:8080?dev       - 개발 모드 (빠른 생성)
+• http://localhost:8080?test      - 테스트 모드
+        `);
+    }
 });

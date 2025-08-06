@@ -2,10 +2,42 @@
 class AISimulator {
     constructor(app) {
         this.app = app;
-        this.generationDelay = { min: 1000, max: 3000 };
+        
+        // 개발/테스트 모드 감지
+        this.devMode = this.detectDevMode();
+        
+        // 개발 모드일 때 생성 속도 크게 단축
+        this.generationDelay = this.devMode 
+            ? { min: 100, max: 300 }  // 0.1~0.3초
+            : { min: 1000, max: 3000 }; // 1~3초
+            
         this.timeoutDelay = 30000; // 30 seconds timeout
         this.contentDatabase = this.initContentDatabase();
         this.currentTimeout = null;
+        
+        if (this.devMode) {
+            console.log('🚀 개발/테스트 모드 활성화 - 빠른 콘텐츠 생성');
+        }
+    }
+    
+    /**
+     * 개발/테스트 모드 감지
+     */
+    detectDevMode() {
+        // URL 파라미터 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('dev') || urlParams.has('test') || urlParams.has('debug')) {
+            return true;
+        }
+        
+        // localhost 또는 개발 환경 확인
+        if (window.location.hostname === 'localhost' || 
+            window.location.hostname === '127.0.0.1' ||
+            window.location.port === '8080') {
+            return true;
+        }
+        
+        return false;
     }
     
     initContentDatabase() {

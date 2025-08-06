@@ -98,13 +98,14 @@ class MenuManager {
         `;
         
         // Add click handler with memory tracking
-        const submenuClickHandler = () => {
+        const submenuClickHandler = async () => {
             if (!this.isDestroyed) {
-                if (this.reviewMode && submenu.status === 'completed') {
-                    // In review mode, load completed page immediately
-                    this.loadCompletedPageImmediate(menuId, submenu.id, submenu);
-                } else if (submenu.status === 'completed' && !this.reviewMode) {
-                    // During generation, just preview completed pages
+                if (submenu.status === 'completed') {
+                    // 완료된 페이지는 항상 서버 데이터를 로드 (리뷰 모드와 상관없이)
+                    console.log(`🔄 완료된 메뉴 클릭: ${submenu.koreanTitle || submenu.title}`);
+                    await this.loadCompletedPageImmediate(menuId, submenu.id, submenu);
+                } else {
+                    // 미완료 페이지는 템플릿만 표시
                     if (this.app.previewManager && this.app.previewManager.loadPage) {
                         this.app.previewManager.loadPage(submenu.url, false);
                     }
@@ -455,7 +456,7 @@ class MenuManager {
     /**
      * 완료된 페이지를 즉시 로드 (애니메이션 없이)
      */
-    loadCompletedPageImmediate(menuId, submenuId, submenu) {
+    async loadCompletedPageImmediate(menuId, submenuId, submenu) {
         console.log(`⚡ 즉시 로드: ${submenu.koreanTitle || submenu.title} 페이지`);
         
         // Highlight current selection
@@ -468,21 +469,10 @@ class MenuManager {
             currentItem.classList.add('current-review');
         }
         
-        // 즉시 페이지 로드 (애니메이션 없이)
+        // PreviewManager의 loadCompletedPageForReview 함수 사용
         if (this.app.previewManager) {
-            // URL 먼저 업데이트
-            const url = submenu.url || `/${menuId}/${submenuId}`;
-            this.app.previewManager.currentUrl = url;
-            this.app.previewManager.urlDisplay.textContent = `https://mysite.com${url}`;
-            
-            // ContentStorage를 사용해 즉시 HTML 생성 및 로드
-            if (!window.contentStorage) {
-                window.contentStorage = new ContentStorage();
-            }
-            
-            const reviewContent = window.contentStorage.generatePageHTML(menuId, submenuId, submenu);
-            this.app.previewManager.iframe.srcdoc = reviewContent;
-            this.app.previewManager.applyZoom();
+            console.log('🔄 PreviewManager loadCompletedPageForReview 호출');
+            await this.app.previewManager.loadCompletedPageForReview(menuId, submenuId, submenu);
         }
         
         // Update status message

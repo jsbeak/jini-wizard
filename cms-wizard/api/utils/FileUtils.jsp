@@ -1,6 +1,8 @@
-<%@ page contentType="text/html; charset=UTF-8" %>
+<%@ page language="java" pageEncoding="UTF-8"%>
 <%@ page import="java.io.*, java.util.*, java.nio.file.*, java.nio.charset.StandardCharsets" %>
 <%@ page import="com.google.gson.*, java.text.SimpleDateFormat" %>
+
+
 
 <%!
 /**
@@ -9,14 +11,14 @@
  */
 public class FileUtils {
     
-    private static final String GENERATED_CONTENT_PATH = "generated-content";
-    private static final String ENCODING = "UTF-8";
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private final String GENERATED_CONTENT_PATH = "generated-content";
+    private final String ENCODING = "UTF-8";
+    private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     
     /**
      * 사이트 폴더 경로 생성
      */
-    public static String getSitePath(ServletContext context, String siteId) {
+    public String getSitePath(ServletContext context, String siteId) {
         String basePath = context.getRealPath("/");
         return basePath + File.separator + GENERATED_CONTENT_PATH + File.separator + siteId;
     }
@@ -24,7 +26,7 @@ public class FileUtils {
     /**
      * 메뉴 콘텐츠 폴더 경로 생성
      */
-    public static String getContentPath(ServletContext context, String siteId, String menuId, String submenuId) {
+    public String getContentPath(ServletContext context, String siteId, String menuId, String submenuId) {
         String sitePath = getSitePath(context, siteId);
         return sitePath + File.separator + menuId + File.separator + submenuId;
     }
@@ -32,7 +34,7 @@ public class FileUtils {
     /**
      * 폴더 생성 (재귀적)
      */
-    public static boolean createDirectories(String path) {
+    public boolean createDirectories(String path) {
         try {
             File directory = new File(path);
             if (!directory.exists()) {
@@ -48,7 +50,7 @@ public class FileUtils {
     /**
      * 텍스트 파일 저장
      */
-    public static boolean saveTextFile(String filePath, String content) {
+    public  boolean saveTextFile(String filePath, String content) {
         try {
             File file = new File(filePath);
             File parentDir = file.getParentFile();
@@ -69,7 +71,7 @@ public class FileUtils {
     /**
      * 텍스트 파일 읽기
      */
-    public static String readTextFile(String filePath) {
+    public String readTextFile(String filePath) {
         try {
             File file = new File(filePath);
             if (!file.exists()) {
@@ -93,7 +95,7 @@ public class FileUtils {
     /**
      * JSON 파일 저장
      */
-    public static boolean saveJsonFile(String filePath, Object data) {
+    public  boolean saveJsonFile(String filePath, Object data) {
         try {
             String jsonContent = gson.toJson(data);
             return saveTextFile(filePath, jsonContent);
@@ -106,7 +108,7 @@ public class FileUtils {
     /**
      * JSON 파일 읽기
      */
-    public static Map<String, Object> readJsonFile(String filePath) {
+    public   Map<String, Object> readJsonFile(String filePath) {
         try {
             String content = readTextFile(filePath);
             if (content == null || content.trim().isEmpty()) {
@@ -123,7 +125,7 @@ public class FileUtils {
     /**
      * 사이트 정보 객체 생성
      */
-    public static Map<String, Object> createSiteInfo(String siteId, String siteName, String domain) {
+    public   Map<String, Object> createSiteInfo(String siteId, String siteName, String domain) {
         Map<String, Object> siteInfo = new HashMap<>();
         siteInfo.put("siteId", siteId);
         siteInfo.put("siteName", siteName);
@@ -138,7 +140,7 @@ public class FileUtils {
     /**
      * 콘텐츠 메타데이터 객체 생성
      */
-    public static Map<String, Object> createContentMetadata(String pageId, String title, String subtitle, 
+    public   Map<String, Object> createContentMetadata(String pageId, String title, String subtitle, 
                                                            String mainContent, String features, double processingTime) {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("pageId", pageId);
@@ -167,7 +169,7 @@ public class FileUtils {
     /**
      * JSON 배열 문자열을 List로 파싱
      */
-    private static List<Object> parseJsonArray(String jsonStr) {
+    private      List<Object> parseJsonArray(String jsonStr) {
         try {
             if (jsonStr == null || jsonStr.trim().isEmpty()) {
                 return new ArrayList<>();
@@ -184,7 +186,7 @@ public class FileUtils {
     /**
      * 단어 수 계산
      */
-    private static int calculateWordCount(String title, String subtitle, String mainContent, String features) {
+    private int calculateWordCount(String title, String subtitle, String mainContent, String features) {
         int totalChars = 0;
         
         if (title != null) totalChars += title.length();
@@ -198,14 +200,14 @@ public class FileUtils {
     /**
      * 파일 존재 여부 확인
      */
-    public static boolean fileExists(String filePath) {
+    public boolean fileExists(String filePath) {
         return new File(filePath).exists();
     }
     
     /**
      * 폴더 내 모든 사이트 목록 조회
      */
-    public static List<String> listSites(ServletContext context) {
+    public   List<String> listSites(ServletContext context) {
         List<String> sites = new ArrayList<>();
         try {
             String basePath = context.getRealPath("/") + File.separator + GENERATED_CONTENT_PATH;
@@ -228,7 +230,7 @@ public class FileUtils {
     /**
      * 사이트 내 메뉴 목록 조회
      */
-    public static List<String> listMenus(ServletContext context, String siteId) {
+    public List<String> listMenus(ServletContext context, String siteId) {
         List<String> menus = new ArrayList<>();
         try {
             String sitePath = getSitePath(context, siteId);
@@ -253,7 +255,7 @@ public class FileUtils {
     /**
      * 응답 JSON 생성 (성공)
      */
-    public static String createSuccessResponse(String message, Object data) {
+    public   String createSuccessResponse(String message, Object data) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", message);
@@ -265,7 +267,7 @@ public class FileUtils {
     /**
      * 응답 JSON 생성 (실패)
      */
-    public static String createErrorResponse(String message, String error) {
+    public   String createErrorResponse(String message, String error) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
         response.put("message", message);
@@ -277,7 +279,7 @@ public class FileUtils {
     /**
      * 안전한 파일명 생성 (특수문자 제거)
      */
-    public static String sanitizeFileName(String fileName) {
+    public  String sanitizeFileName(String fileName) {
         if (fileName == null) return "untitled";
         return fileName.replaceAll("[^a-zA-Z0-9가-힣._-]", "_");
     }
@@ -285,7 +287,7 @@ public class FileUtils {
     /**
      * 폴더 크기 계산 (바이트)
      */
-    public static long calculateDirectorySize(String dirPath) {
+    public   long calculateDirectorySize(String dirPath) {
         try {
             File directory = new File(dirPath);
             return Files.walk(directory.toPath())
@@ -302,5 +304,18 @@ public class FileUtils {
             return 0L;
         }
     }
+    
+    /**
+     * 데이터 베이스 경로 생성 (/data/)
+     * JSP API 파일들에서 사용하는 통합 데이터 저장 경로
+     */
+    public String getDataBasePath(ServletContext application) {
+        String basePath = application.getRealPath("/");
+        return basePath + File.separator + "data";
+    }
 }
+
+// FileUtils 인스턴스 생성
+FileUtils fileUtils = new FileUtils();
+
 %>

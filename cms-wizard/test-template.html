@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>템플릿 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .template-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .template-card {
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .template-card:hover {
+            border-color: #6366F1;
+            background: #f8f9ff;
+        }
+        .template-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .template-card p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .launch-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #6366F1;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .launch-btn:hover {
+            background: #5558dd;
+        }
+        .info {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .info p {
+            margin: 5px 0;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 CMS 템플릿 테스트</h1>
+        
+        <div class="info">
+            <p><strong>사이트 ID:</strong> ewha</p>
+            <p><strong>설명:</strong> 템플릿 ID를 전달하여 다른 템플릿으로 사이트를 생성할 수 있습니다.</p>
+        </div>
+        
+        <div class="template-options">
+            <div class="template-card" onclick="launchWithTemplate('university-ewha')">
+                <h3>🎓 이화여자대학교 템플릿</h3>
+                <p>녹색 테마의 대학 템플릿 (현재 기본값)</p>
+                <a href="index.html?templateId=university-ewha" class="launch-btn">이 템플릿으로 시작</a>
+            </div>
+            
+            <div class="template-card" onclick="launchWithTemplate('corporate-tech')">
+                <h3>💼 기업 템플릿 (준비중)</h3>
+                <p>모던한 테크 기업 스타일</p>
+                <a href="#" class="launch-btn" style="background: #ccc; cursor: not-allowed;">준비중</a>
+            </div>
+            
+            <div class="template-card" onclick="launchWithTemplate('government-basic')">
+                <h3>🏛️ 공공기관 템플릿 (준비중)</h3>
+                <p>정부 및 공공기관용 기본 템플릿</p>
+                <a href="#" class="launch-btn" style="background: #ccc; cursor: not-allowed;">준비중</a>
+            </div>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+        
+        <div>
+            <h3>직접 템플릿 ID 입력</h3>
+            <input type="text" id="templateId" placeholder="예: university-ewha" style="padding: 10px; width: 300px; border: 1px solid #ddd; border-radius: 4px;">
+            <button onclick="launchCustom()" style="padding: 10px 20px; margin-left: 10px; background: #6366F1; color: white; border: none; border-radius: 4px; cursor: pointer;">실행</button>
+        </div>
+    </div>
+    
+    <script>
+        function launchWithTemplate(templateId) {
+            if (templateId === 'university-ewha') {
+                window.location.href = `index.html?templateId=${templateId}`;
+            } else {
+                alert('이 템플릿은 아직 준비중입니다.');
+            }
+        }
+        
+        function launchCustom() {
+            const templateId = document.getElementById('templateId').value.trim();
+            if (templateId) {
+                window.location.href = `index.html?templateId=${templateId}`;
+            } else {
+                alert('템플릿 ID를 입력해주세요.');
+            }
+        }
+    </script>
+</body>
+</html>
