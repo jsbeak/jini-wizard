@@ -15,6 +15,15 @@ class AISimulator {
         this.contentDatabase = this.initContentDatabase();
         this.currentTimeout = null;
         
+        // 스크롤 제어 관련 속성
+        this.userScrolling = false; // 사용자가 수동으로 스크롤 중인지
+        this.autoScrollEnabled = true; // 자동 스크롤 활성화 여부
+        this.scrollTimeout = null; // 스크롤 타임아웃
+        this.lastScrollTime = 0; // 마지막 스크롤 시간
+        
+        // 스크롤 이벤트 리스너 초기화
+        this.initScrollListeners();
+        
         if (this.devMode) {
             console.log('🚀 개발/테스트 모드 활성화 - 빠른 콘텐츠 생성');
         }
@@ -38,6 +47,87 @@ class AISimulator {
         }
         
         return false;
+    }
+    
+    /**
+     * 스크롤 이벤트 리스너 초기화
+     */
+    initScrollListeners() {
+        // iframe 내부의 스크롤 이벤트를 감지하기 위한 함수
+        const detectUserScroll = () => {
+            this.userScrolling = true;
+            this.lastScrollTime = Date.now();
+            
+            // 기존 타임아웃 제거
+            if (this.scrollTimeout) {
+                clearTimeout(this.scrollTimeout);
+            }
+            
+            // 3초 후 자동 스크롤 재개
+            this.scrollTimeout = setTimeout(() => {
+                this.userScrolling = false;
+                console.log('🔄 자동 스크롤 재개');
+            }, 3000);
+            
+            console.log('👆 사용자 스크롤 감지 - 자동 스크롤 일시 중지');
+        };
+        
+        // iframe에 이벤트 리스너 추가 (iframe이 로드된 후)
+        const iframe = document.querySelector('.browser-content iframe');
+        if (iframe) {
+            iframe.addEventListener('load', () => {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // iframe 내부 문서에 스크롤 이벤트 리스너 추가
+                iframeDoc.addEventListener('wheel', detectUserScroll, { passive: true });
+                iframeDoc.addEventListener('touchmove', detectUserScroll, { passive: true });
+                
+                // 키보드 스크롤 감지 (Page Up, Page Down, Arrow keys, Space)
+                iframeDoc.addEventListener('keydown', (e) => {
+                    const scrollKeys = [32, 33, 34, 35, 36, 37, 38, 39, 40]; // Space, Page Up/Down, Home, End, Arrow keys
+                    if (scrollKeys.includes(e.keyCode)) {
+                        detectUserScroll();
+                    }
+                });
+            });
+        }
+        
+        // ESC 키로 자동 스크롤 토글
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.autoScrollEnabled = !this.autoScrollEnabled;
+                console.log(`🔄 자동 스크롤: ${this.autoScrollEnabled ? '활성화' : '비활성화'}`);
+                
+                // 상태 표시 (선택적)
+                this.showScrollStatus(this.autoScrollEnabled);
+            }
+        });
+    }
+    
+    /**
+     * 스크롤 상태 표시 (선택적)
+     */
+    showScrollStatus(enabled) {
+        const statusDiv = document.createElement('div');
+        statusDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${enabled ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10000;
+            animation: fadeInOut 2s ease;
+        `;
+        statusDiv.textContent = `자동 스크롤 ${enabled ? '활성화' : '비활성화'} (ESC로 토글)`;
+        
+        document.body.appendChild(statusDiv);
+        
+        setTimeout(() => {
+            statusDiv.remove();
+        }, 2000);
     }
     
     initContentDatabase() {
@@ -903,8 +993,9 @@ class AISimulator {
             
             await this.sleep(charDelay + Math.random() * 15);
             
-            // Enhanced auto-scroll with smooth animation
-            if (i % 10 === 0 || char === '\n') { // Scroll every 10 characters or on new lines
+            // Enhanced auto-scroll with smooth animation (사용자 스크롤 중이 아닐 때만)
+            if (!this.userScrolling && this.autoScrollEnabled && (i % 10 === 0 || char === '\n')) { 
+                // Scroll every 10 characters or on new lines
                 element.scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'center',
@@ -930,12 +1021,14 @@ class AISimulator {
             }
         }
         
-        // Final scroll to ensure visibility
-        element.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-        });
+        // Final scroll to ensure visibility (사용자 스크롤 중이 아닐 때만)
+        if (!this.userScrolling && this.autoScrollEnabled) {
+            element.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest'
+            });
+        }
         
         // Enhanced cursor removal with fade effect
         cursor.style.transition = 'opacity 0.5s ease';
